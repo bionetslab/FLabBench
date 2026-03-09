@@ -1,0 +1,10 @@
+
+**/__pycache__/
+**/.ipynb_checkpoints
+.DS_Store
+**/saved_data
+**/Final_cohorts
+**/test_codes
+**/dataset_info
+graph_training/analysis/ts_figures/
+**/data/

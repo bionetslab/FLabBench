@@ -1,0 +1,25 @@
+import argparse
+from pathlib import Path
+from flab_cohorts.cohort_extractor.DTB_extractor import DTBExtractor
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--extractor", type=str, choices=["DTB", "LIT"], default="DTB",
+                    help="Cohort extractor: DTB (disease trajectory) or LIT")
+parser.add_argument("--dataset", type=str, default="MIMIC_IV")
+parser.add_argument("--prefix", type=str, default=None)
+
+
+# DTB: single cohort (e.g. A08-A41) or batch from edges file
+parser.add_argument("--cohort", type=str, default="A08-A41-521",
+                    help="Single cohort as D1-D2 (e.g. A08-A41). Use with --extractor DTB.")
+
+
+args = parser.parse_args()
+
+
+e = DTBExtractor(args)
+e.extract_full_cohort("DTB_all")
+"""
+python run_extractor.py --extractor DTB --dataset MIMIC_IV --cohort A08-A41
+"""
