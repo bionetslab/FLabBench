@@ -1,7 +1,7 @@
 import argparse
 from pathlib import Path
 from flab_cohorts.cohort_extractor.DTB_extractor import DTBExtractor
-
+from flab_cohorts.cohort_extractor.LIT.neutropenic_fever import NeutropenicFeverExtractor
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--extractor", type=str, choices=["DTB", "LIT"], default="DTB",
@@ -18,8 +18,12 @@ parser.add_argument("--cohort", type=str, default="A08-A41-521",
 args = parser.parse_args()
 
 
-e = DTBExtractor(args)
-e.extract_full_cohort("DTB_all")
+#e = DTBExtractor(args)
+#e.extract_full_cohort("DTB_all")
+
+
+e = NeutropenicFeverExtractor(args)
+e.extract_cohort()
 """
 python run_extractor.py --extractor DTB --dataset MIMIC_IV --cohort A08-A41
 """

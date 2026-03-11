@@ -19,7 +19,7 @@ class DTBExtractor(BaseExtractor):
         self.adms["next_hadm_id"] = self.adms.groupby("subject_id")["hadm_id"].shift(-1)
         
         # Merge patients data to admissions data
-        self.adms = self.adms.merge(self.patients, on="subject_id", how="left")
+        #self.adms = self.adms.merge(self.patients, on="subject_id", how="left")
         
         # ONLY KEEP ICD-10 DIAGNOSES
         self.diags_10 = self.diags[self.diags["icd_version"] == 10].copy()

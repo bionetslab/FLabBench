@@ -9,3 +9,13 @@ MIMIC_IV_PATH = os.environ.get("MIMIC_IV_PATH", _DEFAULT_MIMIC_IV_PATH)
 
 
 RANDOM_SEED = 42
+
+DATASET_PATHS = {
+    "MIMIC_IV": MIMIC_IV_PATH,
+    "MIMIC_IV_HOSP": MIMIC_IV_PATH,
+    "MIMIC_IV_ICU": MIMIC_IV_PATH
+}
+
+
+def get_data_path(dataset):
+    return Path(DATASET_PATHS.get(dataset, MIMIC_IV_PATH))
