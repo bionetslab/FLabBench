@@ -6,7 +6,7 @@ from flab_cohorts.config.constants import get_data_path
 class BaseExtractor:
     def __init__(self, args):
         self.args = args
-        self.data_path = get_data_path(getattr(args, "dataset", "MIMIC_IV"))
+        self.data_path = Path(args.data_path) if getattr(args, "data_path", None) else get_data_path(getattr(args, "dataset", "MIMIC_IV"))
         self.paths = set_all_paths(args)
         self._load_mimic(self.data_path)
 
