@@ -13,7 +13,8 @@ tqdm.pandas()
 
 
 from flab_cohorts.extractors.base import BaseExtractor
-from flab_cohorts.extractors.LIT.cohort_utils import extract_diag_pts, extract_chemo_cohort, extract_cohort_labs, find_itemid_by_label, get_procedures
+from flab_cohorts.extractors.LIT.cohort_utils import extract_diag_pts, extract_chemo_cohort, find_itemid_by_label
+from flab_cohorts.utils.dataset_loader import load_labevents_for_cohort, load_d_icd_procedures, load_procedures
 
 class AplasiaExtractor(BaseExtractor):
     def __init__(self, args):
@@ -27,7 +28,7 @@ class AplasiaExtractor(BaseExtractor):
         cancer_pts= extract_diag_pts(self.data_path, icd_code="C")
         cancer_cohort = self.adms[self.adms["subject_id"].isin(cancer_pts["subject_id"])]
         cancer_chemo_cohort  = extract_chemo_cohort(cancer_cohort, self.data_path)
-        cancer_chemo_cohort_labs = extract_cohort_labs(self.data_path, cancer_chemo_cohort)
+        cancer_chemo_cohort_labs = load_labevents_for_cohort(self.data_path, cancer_chemo_cohort)
         
         # Find ANC values 
         ANC_lab_df = self.extract_ANC_cohort(cancer_chemo_cohort_labs)
@@ -66,8 +67,9 @@ class AplasiaExtractor(BaseExtractor):
         return ANC_lab_df
     
     def find_transfusions(self) -> pd.DataFrame:
-        
-        proc_icd_definition_df, proc_icd_df = get_procedures(self.data_path)
+        proc_icd_definition_df = load_d_icd_procedures(self.data_path)
+        proc_icd_df = load_procedures(self.data_path)
+
         transfusion_codes= proc_icd_definition_df[
             (proc_icd_definition_df['icd_version'] == 10) &
             (proc_icd_definition_df['long_title'].str.contains('transfusion', case=False, na=False)) &

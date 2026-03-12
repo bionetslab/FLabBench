@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Optional, Union
 from flab_cohorts.config.constants import DTB_DATA_PATH
 from flab_cohorts.extractors.base import BaseExtractor
+from flab_cohorts.utils.io import load_dtb_edges
 from tqdm import tqdm
 
 
@@ -32,8 +33,8 @@ class DTBExtractor(BaseExtractor):
     
     def select_edges(self, cohort: str) -> pd.DataFrame:
 
-        try: 
-            edges_df = pd.read_csv(DTB_DATA_PATH / "41467_2020_18682_MOESM1_ESM.tsv", sep="\t")
+        try:
+            edges_df = load_dtb_edges(DTB_DATA_PATH / "41467_2020_18682_MOESM1_ESM.tsv")
             
             if cohort == "DTB_all":
                 sel_edges = edges_df[(edges_df["RR"] > 1) & (edges_df["direction_yes_no"] == 1) & (edges_df["D2"] != "D99")].dropna()

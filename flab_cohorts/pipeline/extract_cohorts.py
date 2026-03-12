@@ -19,7 +19,8 @@ def main():
         description="Extract cohorts from MIMIC-IV (LIT: literature-based; DTB: disease trajectory).",
     )
     parser.add_argument("--extractor",type=str,choices=["DTB", "LIT"],default="LIT",help="Extractor type: DTB (disease trajectory) or LIT (literature-based).")
-    parser.add_argument("--cohort",type=str,choices=["neutropenic_fever", "aplasia"],default="neutropenic_fever",help="Cohort name: neutropenic_fever (neutropenic fever) or aplasia.")
+    parser.add_argument("--cohort", type=str, default="NF",
+    help="LIT: 'NF', 'neutropenic_fever', 'aplasia'. DTB: 'DTB_all' or 'D1-D2' (e.g. A08-A41).")
     parser.add_argument("--dataset",type=str,choices=["MIMIC_IV", "MIMIC_III"],default="MIMIC_IV",help="Dataset key for data path lookup (e.g. MIMIC_IV).")
     parser.add_argument("--data-path",type=str,default=None,help="Override MIMIC root path. Default: from config / MIMIC_IV_PATH env.")
     parser.add_argument("--prefix",type=str,default=None,help="Optional output prefix.")

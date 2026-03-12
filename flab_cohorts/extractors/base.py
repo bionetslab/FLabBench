@@ -1,6 +1,7 @@
 from pathlib import Path
 
-from flab_cohorts.utils.io import load_admissions, load_diagnoses, load_patients, set_all_paths
+from flab_cohorts.utils.dataset_loader import load_admissions, load_diagnoses, load_patients
+from flab_cohorts.utils.io import set_all_paths
 from flab_cohorts.config.constants import get_data_path
 
 class BaseExtractor:
