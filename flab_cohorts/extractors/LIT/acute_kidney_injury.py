@@ -46,7 +46,7 @@ class AcuteKidneyInjuryExtractor(BaseExtractor):
         self.stays["AKI"] =  self.stays['dialysis_PW'] | self.stays['AKI_abs_48h'] | self.stays['AKI_base_50%']
         aki_cohort = self.stays[self.stays['age_window'] & self.stays['first_icustay'] & self.stays['min_los'] & self.stays['scr_ow'] & ~self.stays["AKI_24h"]]
         
-        
+        self.save_cohort(aki_cohort)
         
     def prepare_stays(self):
 
@@ -169,9 +169,9 @@ class AcuteKidneyInjuryExtractor(BaseExtractor):
 
         
         pct = 100 * cohort["label"].mean()
-        print("Number of admissions in AKI cohort: ", cohort.hadm_id.nunique())
+        print("Number of ICU stays in AKI cohort: ", cohort.stay_id.nunique())
         print("Number of patients in AKI cohort: ", cohort.subject_id.nunique())
-        print("Number of admissions with AKI: ", cohort[cohort["label"] == 1].hadm_id.nunique())
+        print("Number of ICU stays with AKI: ", cohort[cohort["label"] == 1].stay_id.nunique())
         print(f"AKI positive rate: {pct:.2f}%")
         
         cohort.to_csv(self.paths["cohort_path"] / f"cohort_aki.csv", index=False)
