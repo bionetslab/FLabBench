@@ -27,7 +27,7 @@ def load_patients(data_path: Path) -> pd.DataFrame:
     p = os.path.join(data_path, "hosp/patients.csv.gz")
     if not os.path.exists(p):
         raise FileNotFoundError(f"No patients file under {data_path}")
-    patients = pd.read_csv(p, compression='gzip', header=0, index_col=None, usecols=["subject_id","anchor_age", "gender", "dod"])
+    patients = pd.read_csv(p, compression='gzip', header=0, index_col=None, usecols=["subject_id","anchor_age", "gender", "dod"], parse_dates=["dod"])
     patients = patients.rename(columns={"anchor_age": "age"})
     patients = patients.loc[patients['age'] >= 18]
     
@@ -38,7 +38,8 @@ def load_procedures(data_path: Path) -> pd.DataFrame:
     p = os.path.join(data_path, "hosp/procedures_icd.csv.gz")
     if not os.path.exists(p):
         raise FileNotFoundError(f"No procedures file under {data_path}")
-    return pd.read_csv(p, compression='gzip', header=0, index_col=None)
+    df = pd.read_csv(p, compression='gzip', header=0, index_col=None)
+    return df
 
 
 
@@ -88,3 +89,39 @@ def load_labevents_for_cohort(data_path: Path, cohort: pd.DataFrame, usecols=Non
         return pd.DataFrame(columns=usecols)
     return pd.concat(chunks_list, ignore_index=True)
 
+
+def load_icu_stays(data_path: Path) -> pd.DataFrame:
+    p = os.path.join(data_path, "icu/icustays.csv.gz")
+    if not os.path.exists(p):
+        raise FileNotFoundError(f"icustays.csv.gz not found under {data_path}/icu/")
+    df = pd.read_csv(p, compression="gzip", header=0, usecols=["subject_id", "hadm_id", "stay_id","intime", "outtime","los"], parse_dates=["intime", "outtime"])
+    return df
+
+def load_icu_procedures(data_path: Path) -> pd.DataFrame:
+    p = os.path.join(data_path, "icu/procedureevents.csv.gz")
+    if not os.path.exists(p):
+        raise FileNotFoundError(f"procedureevents.csv.gz not found under {data_path}/icu/")
+    df = pd.read_csv(p, compression="gzip", header=0, usecols=['subject_id', 'hadm_id', 'stay_id', 'starttime', 'endtime', 'itemid', 'value', 'valueuom'],
+                         parse_dates=['starttime', 'endtime'])
+    return df
+
+def load_icu_items(data_path: Path) -> pd.DataFrame:
+    p = os.path.join(data_path, "icu/d_items.csv.gz")
+    if not os.path.exists(p):
+        raise FileNotFoundError(f"d_items.csv.gz not found under {data_path}/icu/")
+    df = pd.read_csv(p, compression="gzip", header=0)
+    return df
+
+
+def load_labevents_for_itemid(data_path: Path, itemid: int, usecols=None, chunksize=1_000_000):
+
+    usecols = ["subject_id", "hadm_id", "itemid", "charttime", "valuenum"]
+    data_path = os.path.join(data_path, "hosp/labevents.csv.gz")
+
+    chunks_list = []
+    for chunk in tqdm(pd.read_csv(data_path, compression="gzip", usecols=usecols, chunksize=chunksize, parse_dates=["charttime"])):
+
+        chunk = chunk[chunk["itemid"] == itemid]
+        chunks_list.append(chunk)
+
+    return pd.concat(chunks_list, ignore_index=True)
