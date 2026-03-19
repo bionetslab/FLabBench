@@ -55,7 +55,7 @@ class GastrointestinalBleedingExtractor(BaseExtractor):
         self.add_gi_bleeding_diagnosis()
         self.add_transfusions()
 
-        inclusion_mask = (self.stays["first_icustay_hadm"] & self.stays["is_age_eligible"] & self.stays["gi_bleed"])
+        inclusion_mask = (self.stays["is_first_icustay_hadm"] & self.stays["is_age_eligible"] & self.stays["gi_bleed"])
         gi_bleeding_cohort = self.stays.loc[inclusion_mask].copy()
         
         self.save_cohort(gi_bleeding_cohort)
@@ -70,8 +70,8 @@ class GastrointestinalBleedingExtractor(BaseExtractor):
         self.stays = self.stays.merge(self.adms[["hadm_id","race"]], on="hadm_id", how="left")
         # label first ICU stay
         self.stays = self.stays.sort_values(["subject_id", "intime"])
-        self.stays["first_icustay"] = self.stays.groupby("subject_id")["intime"].transform("min") == self.stays["intime"]
-        self.stays["first_icustay_hadm"] = self.stays.groupby("hadm_id")["intime"].transform("min") == self.stays["intime"]
+        self.stays["is_first_icustay"] = self.stays.groupby("subject_id")["intime"].transform("min") == self.stays["intime"]
+        self.stays["is_first_icustay_hadm"] = self.stays.groupby("hadm_id")["intime"].transform("min") == self.stays["intime"]
     
     
     

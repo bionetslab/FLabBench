@@ -7,12 +7,15 @@ Reference:  https://www.medrxiv.org/content/10.64898/2025.12.12.25342142v1
 import pandas as pd
 from pathlib import Path
 from datetime import timedelta
-from tqdm import tqdm 
+from tqdm import tqdm
 tqdm.pandas()  
 
 
 from flab_cohorts.extractors.base import BaseExtractor
 from flab_cohorts.extractors.LIT.cohort_utils import extract_diag_pts, extract_chemo_cohort
+from flab_cohorts.utils.logger import get_logger
+
+logger = get_logger("NEUTROPENIC_FEVER")
 
 class NeutropenicFeverExtractor(BaseExtractor):
     def __init__(self, args):
@@ -21,13 +24,14 @@ class NeutropenicFeverExtractor(BaseExtractor):
         self.days = 30
         
     
-    def extract_cohort (self):  
+    def extract_cohort(self):
+        """Run neutropenic fever cohort extraction and persist the cohort."""
           
         cancer_pts= extract_diag_pts(self.data_path, icd_code="C")
         cancer_cohort = self.adms[self.adms["subject_id"].isin(cancer_pts["subject_id"])]
         cancer_chemo_cohort  = extract_chemo_cohort(cancer_cohort, self.data_path)
         
-        print("Extracting NF cohort ... ")
+        logger.info("Extracting NF cohort...")
         target_cohort = self.current_NF_occurance(cancer_chemo_cohort, self.data_path)
         target_cohort["NF_case"] = target_cohort.progress_apply(lambda x: self.split_neutropenic_fever_cases(x, self.days,target_cohort,"both readmissions and no admission"), axis=1)
         
@@ -98,16 +102,17 @@ class NeutropenicFeverExtractor(BaseExtractor):
                 else: 
                     return 0
     
-    def save_cohort(self, cohort: pd.DataFrame):
+    def save_cohort(self, cohort: pd.DataFrame) -> None:
+        """Save final cohort and report summary stats."""
         
         cohort = cohort.rename(columns={'NF_case': 'label'})
         cohort = cohort.drop(columns =['hospital_expire_flag','chemo','fever','neutropenia','NF'])
         
         pct = 100 * cohort["label"].mean()
-        print("Number of admissions in NF cohort: ", cohort.hadm_id.nunique())
-        print("Number of patients in NF cohort: ", cohort.subject_id.nunique())
-        print("Number of admissions with NF: ", cohort[cohort["label"] == 1].hadm_id.nunique())
-        print(f"Neutropenic fever positive in 30 days: {pct:.2f}%")
+        logger.info("Number of admissions in NF cohort: %s", cohort.hadm_id.nunique())
+        logger.info("Number of patients in NF cohort: %s", cohort.subject_id.nunique())
+        logger.info("Number of admissions with NF: %s", cohort[cohort["label"] == 1].hadm_id.nunique())
+        logger.info("Neutropenic fever positive in 30 days: %.2f%%", pct)
         
         cohort.to_csv(self.paths["cohort_path"] / f"cohort_neutropenic_fever.csv", index=False)
-        print("Neutropenic fever cohort saved.")
+        logger.info("Neutropenic fever cohort saved.")

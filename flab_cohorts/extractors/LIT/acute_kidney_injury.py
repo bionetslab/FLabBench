@@ -7,13 +7,16 @@ possibly compare with https://github.com/ExaScience/Aki-Predictor
 
 
 import pandas as pd
-from tqdm import tqdm 
+from tqdm import tqdm
 import numpy as np
 tqdm.pandas()  
 
 
 from flab_cohorts.extractors.base import BaseExtractor
 from flab_cohorts.utils.dataset_loader import load_icu_stays, load_icu_procedures, load_labevents_for_itemid, load_diagnoses
+from flab_cohorts.utils.logger import get_logger
+
+logger = get_logger("AKI")
 
 class AcuteKidneyInjuryExtractor(BaseExtractor):
     def __init__(self, args):
@@ -31,7 +34,8 @@ class AcuteKidneyInjuryExtractor(BaseExtractor):
 
     
     
-    def extract_cohort (self): 
+    def extract_cohort(self):
+        """Run AKI cohort extraction and persist the cohort."""
 
         self.prepare_stays()
         self.find_first_CDK_diagnosis()
@@ -40,33 +44,42 @@ class AcuteKidneyInjuryExtractor(BaseExtractor):
         
         
         self.stays['baseline_scr'] = self.stays.apply(self.compute_baseline_scr, axis=1)
-        self.stays["AKI_base_50%_24h"] = self.stays["max_scr_ow"] > self.stays['baseline_scr']*1.5 
+        self.stays["AKI_base_50%_24h"] = self.stays["max_has_src_in_obs_window"] > self.stays['baseline_scr']*1.5 
         self.stays["AKI_base_50%"] = self.stays["max_scr_pw"] > self.stays['baseline_scr']*1.5 # THIRD TARGET CRITERION
         self.stays["AKI_24h"] = self.stays['high_scr'] 
         self.stays["AKI"] =  self.stays['dialysis_PW'] | self.stays['AKI_abs_48h'] | self.stays['AKI_base_50%']
-        aki_cohort = self.stays[self.stays['age_window'] & self.stays['first_icustay'] & self.stays['min_los'] & self.stays['scr_ow'] & ~self.stays["AKI_24h"]]
+        inclusion_mask = (
+            self.stays["is_age_eligible"]
+            & self.stays["is_first_icustay"]
+            & self.stays["has_min_icu_los"]
+            & self.stays["has_src_in_obs_window"]
+            & ~self.stays["AKI_24h"]
+        )
+        aki_cohort = self.stays.loc[inclusion_mask].copy()
         
         self.save_cohort(aki_cohort)
         
-    def prepare_stays(self):
+    def prepare_stays(self) -> None:
+        """Prepare stay-level features; mutates self.stays in place."""
 
 
         # add age & gender
         self.stays = self.stays.merge(self.patients, on="subject_id", how="left")
         # in predefined age window
-        self.stays["age_window"] = (self.stays["age"] >= 18) & (self.stays["age"] <= 89)
+        self.stays["is_age_eligible"] = (self.stays["age"] >= 18) & (self.stays["age"] <= 89)
         # add ethnicity
         self.stays = self.stays.merge(self.adms[["hadm_id","race"]], on="hadm_id", how="left")
         # of black ethnicity
         self.stays["is_black"] = self.stays["race"].isin(['BLACK/AFRICAN AMERICAN', 'BLACK/AFRICAN', 'BLACK/CAPE VERDEAN', 'BLACK/HAITIAN'])
         # ICU stay > 24 h
-        self.stays["min_los"] = self.stays["los"] > 1
+        self.stays["has_min_icu_los"] = self.stays["los"] > 1
         # label first ICU stay
         self.stays = self.stays.sort_values(["subject_id", "intime"])
-        self.stays["first_icustay"] = self.stays.groupby("subject_id")["intime"].transform("min") == self.stays["intime"]
+        self.stays["is_first_icustay"] = self.stays.groupby("subject_id")["intime"].transform("min") == self.stays["intime"]
     
     # CDK Chronic Kidney Disease
-    def find_first_CDK_diagnosis(self):
+    def find_first_CDK_diagnosis(self) -> None:
+        """Add CKD history features; mutates self.stays in place."""
 
         diag_ckd = self.diags[self.diags["icd_code"].str.startswith(self.ckd_icd_codes)]
         diag_ckd = diag_ckd.merge(self.adms[["hadm_id","admittime","dischtime"]], on="hadm_id",how="left")
@@ -78,7 +91,8 @@ class AcuteKidneyInjuryExtractor(BaseExtractor):
         
 
         
-    def add_dialysis_procedure(self):
+    def add_dialysis_procedure(self) -> None:
+        """Add dialysis timing flags; mutates self.stays in place."""
 
         dial_proc = self.procedures[self.procedures["itemid"].isin(self.rrt_codes)]
 
@@ -93,7 +107,8 @@ class AcuteKidneyInjuryExtractor(BaseExtractor):
         
         
         
-    def add_serum_creatinine_features(self):
+    def add_serum_creatinine_features(self) -> None:
+        """Add creatinine-derived AKI features; mutates self.stays in place."""
         
         self.scr_lab = load_labevents_for_itemid(self.data_path, self.creatinine_itemid)
 
@@ -103,21 +118,21 @@ class AcuteKidneyInjuryExtractor(BaseExtractor):
         scr_hadm = scr_hadm.sort_values(["stay_id","charttime"])
 
         # serum creatinine in the first 24h of ICU admission (observation window)
-        scr_ow = scr_hadm[(scr_hadm["hours_since_icu_admit"] >= 0) & (scr_hadm["hours_since_icu_admit"] < 24)]
+        has_src_in_obs_window = scr_hadm[(scr_hadm["hours_since_icu_admit"] >= 0) & (scr_hadm["hours_since_icu_admit"] < 24)]
         scr_pw = scr_hadm[(scr_hadm["hours_since_icu_admit"] >= 24) & (scr_hadm["hours_since_icu_admit"] <= 72)]
 
         # first measurement of serum creatinine
-        scr_first = (scr_ow.sort_values(["stay_id","charttime"]).groupby("stay_id").first().reset_index()[["stay_id","valuenum"]].rename(columns={"valuenum":"first_scr"}))
+        scr_first = (has_src_in_obs_window.sort_values(["stay_id","charttime"]).groupby("stay_id").first().reset_index()[["stay_id","valuenum"]].rename(columns={"valuenum":"first_scr"}))
 
-        scr_ow_max = scr_ow.groupby("stay_id").valuenum.max().reset_index().rename(columns={"valuenum":"max_scr_ow"})
+        has_src_in_obs_window_max = has_src_in_obs_window.groupby("stay_id").valuenum.max().reset_index().rename(columns={"valuenum":"max_has_src_in_obs_window"})
         scr_pw_max = scr_pw.groupby("stay_id").valuenum.max().reset_index().rename(columns={"valuenum":"max_scr_pw"})
 
         self.stays = self.stays.merge(scr_pw_max, on="stay_id", how="left")
-        self.stays = self.stays.merge(scr_ow_max, on="stay_id", how="left")
+        self.stays = self.stays.merge(has_src_in_obs_window_max, on="stay_id", how="left")
         self.stays = self.stays.merge(scr_first, on="stay_id", how="left")
 
         # serum creatinine in first 24h
-        self.stays["scr_ow"] = self.stays["first_scr"].notna()
+        self.stays["has_src_in_obs_window"] = self.stays["first_scr"].notna()
         # high serum creatinine
         self.stays["high_scr"] = self.stays["first_scr"]>4
         
@@ -144,8 +159,8 @@ class AcuteKidneyInjuryExtractor(BaseExtractor):
 
 
 
-    def compute_baseline_scr(self,row):
-        if row["age_window"]:
+    def compute_baseline_scr(self, row):
+        if row["is_age_eligible"]:
             if row['ckd']:
                 # CKD: use first SCr at ICU admission
 
@@ -161,7 +176,8 @@ class AcuteKidneyInjuryExtractor(BaseExtractor):
             return np.nan
 
 
-    def save_cohort(self, cohort: pd.DataFrame):
+    def save_cohort(self, cohort: pd.DataFrame) -> None:
+        """Save final AKI cohort and report summary stats."""
         
         cohort = cohort.rename(columns={'AKI': 'label'})
         cols = ['subject_id', 'hadm_id', 'stay_id','intime', 'outtime', 'race', 'los', 'gender', 'age', 'dod', 'label']
@@ -169,10 +185,10 @@ class AcuteKidneyInjuryExtractor(BaseExtractor):
 
         
         pct = 100 * cohort["label"].mean()
-        print("Number of ICU stays in AKI cohort: ", cohort.stay_id.nunique())
-        print("Number of patients in AKI cohort: ", cohort.subject_id.nunique())
-        print("Number of ICU stays with AKI: ", cohort[cohort["label"] == 1].stay_id.nunique())
-        print(f"AKI positive rate: {pct:.2f}%")
+        logger.info("Number of ICU stays in AKI cohort: %s", cohort.stay_id.nunique())
+        logger.info("Number of patients in AKI cohort: %s", cohort.subject_id.nunique())
+        logger.info("Number of ICU stays with AKI: %s", cohort[cohort["label"] == 1].stay_id.nunique())
+        logger.info("AKI positive rate: %.2f%%", pct)
         
         cohort.to_csv(self.paths["cohort_path"] / f"cohort_aki.csv", index=False)
-        print("AKI cohort saved.")
+        logger.info("AKI cohort saved.")

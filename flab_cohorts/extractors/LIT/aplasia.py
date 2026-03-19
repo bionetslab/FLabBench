@@ -8,13 +8,16 @@ Reference: https://www.medrxiv.org/content/10.64898/2025.12.12.25342142v1
 import pandas as pd
 from pathlib import Path
 from datetime import timedelta
-from tqdm import tqdm 
+from tqdm import tqdm
 tqdm.pandas()  
 
 
 from flab_cohorts.extractors.base import BaseExtractor
 from flab_cohorts.extractors.LIT.cohort_utils import extract_diag_pts, extract_chemo_cohort, find_itemid_by_label
 from flab_cohorts.utils.dataset_loader import load_labevents_for_cohort, load_d_icd_procedures, load_procedures
+from flab_cohorts.utils.logger import get_logger
+
+logger = get_logger("APLASIA")
 
 class AplasiaExtractor(BaseExtractor):
     def __init__(self, args):
@@ -23,7 +26,8 @@ class AplasiaExtractor(BaseExtractor):
         self.days = 45
         
     
-    def extract_cohort (self):  
+    def extract_cohort(self):
+        """Run aplasia cohort extraction and persist the cohort."""
           
         cancer_pts= extract_diag_pts(self.data_path, icd_code="C")
         cancer_cohort = self.adms[self.adms["subject_id"].isin(cancer_pts["subject_id"])]
@@ -35,7 +39,7 @@ class AplasiaExtractor(BaseExtractor):
         # Find transfusions
         target_cohort = self.extract_transfusion_cohort(cancer_chemo_cohort)
         
-        print("Extracting aplasia cohort ... ")
+        logger.info("Extracting aplasia cohort...")
         target_cohort["current_aplasia"]  = target_cohort.progress_apply(lambda x: self.current_aplasia_occurrence(x, labs=ANC_lab_df), axis=1)
         target_cohort[["next_aplasia", "next_aplasia_time"]]  = target_cohort.progress_apply(lambda x: pd.Series(self.after_admission_aplasia_occurrence(x, target_cohort,days=self.days, labs=ANC_lab_df)), axis=1)
         target_cohort["aplasia_case"] = target_cohort.progress_apply(lambda x: self.split_aplasia_cases(x, days=self.days,target_cohort=target_cohort), axis=1)
@@ -54,7 +58,7 @@ class AplasiaExtractor(BaseExtractor):
     def find_ANC_labels(self):
         ANC_label='absolute neutrophil count'
         ANC_itemids = find_itemid_by_label(self.data_path, ANC_label)
-        print('ANC itemids are: ',ANC_itemids)
+        logger.info("ANC itemids are: %s", ANC_itemids)
         return ANC_itemids
     
     def extract_ANC_cohort(self, labs_df):
@@ -190,20 +194,21 @@ class AplasiaExtractor(BaseExtractor):
                         else: 
                             return 0
                         
-    def save_cohort(self, cohort: pd.DataFrame):
+    def save_cohort(self, cohort: pd.DataFrame) -> None:
+        """Save final cohort and report summary stats."""
         
         cohort = cohort.rename(columns={'aplasia_case': 'label'})
         cohort = cohort.drop(columns =['hospital_expire_flag','chemo','current_aplasia','next_aplasia','next_aplasia_time','transfusion','transfusion_date'])
 
         
         pct = 100 * cohort["label"].mean()
-        print("Number of admissions in Aplasia cohort: ", cohort.hadm_id.nunique())
-        print("Number of patients in Aplasia cohort: ", cohort.subject_id.nunique())
-        print("Number of admissions with Aplasia: ", cohort[cohort["label"] == 1].hadm_id.nunique())
-        print(f"Aplasia positive in 45 days: {pct:.2f}%")
+        logger.info("Number of admissions in Aplasia cohort: %s", cohort.hadm_id.nunique())
+        logger.info("Number of patients in Aplasia cohort: %s", cohort.subject_id.nunique())
+        logger.info("Number of admissions with Aplasia: %s", cohort[cohort["label"] == 1].hadm_id.nunique())
+        logger.info("Aplasia positive in 45 days: %.2f%%", pct)
         
         cohort.to_csv(self.paths["cohort_path"] / f"cohort_aplasia.csv", index=False)
-        print("Aplasia cohort saved.")
+        logger.info("Aplasia cohort saved.")
         
                 
 

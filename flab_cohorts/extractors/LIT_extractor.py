@@ -4,6 +4,10 @@ from flab_cohorts.extractors.LIT.neutropenic_fever import NeutropenicFeverExtrac
 from flab_cohorts.extractors.LIT.acute_kidney_injury import AcuteKidneyInjuryExtractor
 from flab_cohorts.extractors.LIT.gastrointestinal_bleeding import GastrointestinalBleedingExtractor
 
+
+
+#TODO: Make cohort names consistent
+
 class LITExtractor(BaseExtractor):
     def __init__(self, args):
         super().__init__(args)
