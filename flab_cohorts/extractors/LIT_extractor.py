@@ -3,6 +3,7 @@ from flab_cohorts.extractors.LIT.aplasia import AplasiaExtractor
 from flab_cohorts.extractors.LIT.neutropenic_fever import NeutropenicFeverExtractor
 from flab_cohorts.extractors.LIT.acute_kidney_injury import AcuteKidneyInjuryExtractor
 from flab_cohorts.extractors.LIT.gastrointestinal_bleeding import GastrointestinalBleedingExtractor
+from flab_cohorts.extractors.LIT.ulcer import PressureUlcerExtractor
 
 
 
@@ -28,3 +29,5 @@ class LITExtractor(BaseExtractor):
         elif cohort == "gi_bleeding":
             return GastrointestinalBleedingExtractor(self.args).extract_cohort()
 
+        elif cohort == "ulcer":
+            return PressureUlcerExtractor(self.args).extract_cohort()
