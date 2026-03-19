@@ -2,6 +2,7 @@ from flab_cohorts.extractors.base import BaseExtractor
 from flab_cohorts.extractors.LIT.aplasia import AplasiaExtractor
 from flab_cohorts.extractors.LIT.neutropenic_fever import NeutropenicFeverExtractor
 from flab_cohorts.extractors.LIT.acute_kidney_injury import AcuteKidneyInjuryExtractor
+from flab_cohorts.extractors.LIT.gastrointestinal_bleeding import GastrointestinalBleedingExtractor
 
 class LITExtractor(BaseExtractor):
     def __init__(self, args):
@@ -20,5 +21,6 @@ class LITExtractor(BaseExtractor):
         elif cohort == "acute_kidney_injury":
             return AcuteKidneyInjuryExtractor(self.args).extract_cohort()
 
-
+        elif cohort == "gi_bleeding":
+            return GastrointestinalBleedingExtractor(self.args).extract_cohort()
 

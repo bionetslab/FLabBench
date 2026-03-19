@@ -12,9 +12,11 @@ from pathlib import Path
 
 from flab_cohorts.extractors.DTB_extractor import DTBExtractor
 from flab_cohorts.extractors.LIT_extractor import LITExtractor
+from flab_cohorts.utils.logger import setup_logging
 
 
 def main():
+    setup_logging()
     parser = argparse.ArgumentParser(
         description="Extract cohorts from MIMIC-IV (LIT: literature-based; DTB: disease trajectory).",
     )
