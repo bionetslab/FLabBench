@@ -4,7 +4,7 @@ Reference:  https://onlinelibrary.wiley.com/doi/abs/10.1111/jocn.17860
 
 """
 # ICU
-#Stage II 
+#ULCER: Stage II 
 
 import pandas as pd
 from dataclasses import dataclass
@@ -35,7 +35,6 @@ class PressureUlcerExtractor(BaseExtractor):
         self.config = config
 
     def prepare_stays(self) -> pd.DataFrame:
-        """Load ICU stays and add demographic/eligibility columns."""
         
         stays = load_icu_stays(self.data_path)
         stays = stays.merge(self.patients, on="subject_id", how="left")
@@ -47,7 +46,6 @@ class PressureUlcerExtractor(BaseExtractor):
 
 
     def add_pu_stage2_labels(self, stays: pd.DataFrame) -> pd.DataFrame:
-        """Add observation/prediction window PU flags. Returns updated stays."""
         
         pu_events = load_icu_chartevents_for_itemid(self.data_path, list(self.config.pu_chart_itemids))
 
@@ -71,7 +69,7 @@ class PressureUlcerExtractor(BaseExtractor):
         return stays
 
     def extract_cohort(self):
-        """Run pressure ulcer cohort extraction and persist the cohort."""
+        """Run pressure ulcer cohort extraction."""
         stays = self.prepare_stays()
         stays = self.add_pu_stage2_labels(stays)
 
@@ -86,6 +84,7 @@ class PressureUlcerExtractor(BaseExtractor):
 
     def save_cohort(self, cohort: pd.DataFrame) -> None:
         """Save final pressure ulcer cohort and report summary stats."""
+        
         cohort = cohort.rename(columns={"has_pu_in_prediction_window": "label"})
         cols = ["subject_id", "hadm_id", "stay_id", "intime", "outtime", "race", "los", "gender", "age", "dod", "label"]
         cohort = cohort[cols]
