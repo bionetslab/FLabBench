@@ -4,7 +4,7 @@ from flab_cohorts.extractors.LIT.neutropenic_fever import NeutropenicFeverExtrac
 from flab_cohorts.extractors.LIT.acute_kidney_injury import AcuteKidneyInjuryExtractor
 from flab_cohorts.extractors.LIT.gastrointestinal_bleeding import GastrointestinalBleedingExtractor
 from flab_cohorts.extractors.LIT.ulcer import PressureUlcerExtractor
-
+from flab_cohorts.extractors.LIT.alcoholic_cirrhosis_mortality import AlcoholicCirrhosisMortalityExtractor
 
 
 #TODO: Make cohort names consistent
@@ -31,3 +31,6 @@ class LITExtractor(BaseExtractor):
 
         elif cohort == "ulcer":
             return PressureUlcerExtractor(self.args).extract_cohort()
+        
+        elif cohort == "ac_mortality":
+            return AlcoholicCirrhosisMortalityExtractor(self.args).extract_cohort()
