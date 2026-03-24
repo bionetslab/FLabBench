@@ -19,7 +19,7 @@ logger = get_logger("ALCOHOLIC_CIRRHOSIS_MORTALITY")
 
 
 @dataclass
-class AlcoholicCirrhosisMortalityConfig:
+class AlcoholicCirrhosisConfig:
     age_min: float = 18.0
     age_max: float = 120.0
     min_los_days: float = 1.0
@@ -27,8 +27,8 @@ class AlcoholicCirrhosisMortalityConfig:
     ac_icd_codes: tuple[str, ...] = ("5712","K7030", "K7031") 
 
 
-class AlcoholicCirrhosisMortalityExtractor(BaseExtractor):
-    def __init__(self, args, config: AlcoholicCirrhosisMortalityConfig = AlcoholicCirrhosisMortalityConfig()):
+class AlcoholicCirrhosisExtractor(BaseExtractor):
+    def __init__(self, args, config: AlcoholicCirrhosisConfig = AlcoholicCirrhosisConfig()):
         super().__init__(args)
         self.config = config
         
