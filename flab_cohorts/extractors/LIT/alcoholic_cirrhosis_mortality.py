@@ -77,9 +77,8 @@ class AlcoholicCirrhosisExtractor(BaseExtractor):
         # 1) keep AC stays, 2) then keep first ICU stay per subject within AC stays.
         cohort = stays[stays["has_ac_diagnosis"] & stays["is_age_eligible"]].copy()
         cohort = cohort.sort_values(["subject_id", "intime"])
-        cohort["is_first_ac_icustay"] = (cohort.groupby("subject_id")["intime"].transform("min") == cohort["intime"])
-        #cohort = cohort.groupby("subject_id", as_index=False).head(1)
-        cohort = cohort[cohort["is_first_ac_icustay"]]
+        cohort["is_first_icustay_with_AC"] = (cohort.groupby("subject_id")["intime"].transform("min") == cohort["intime"])
+        cohort = cohort[cohort["is_first_icustay_with_AC"]]
 
         self.save_cohort(cohort)
 
