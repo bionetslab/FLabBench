@@ -48,7 +48,7 @@ class AlcoholicCirrhosisExtractor(BaseExtractor):
         stays["has_ac_diagnosis"] = stays["hadm_id"].isin(ac_ids["hadm_id"])
         return stays
     
-    def add_mortality_label(self, stays: pd.DataFrame) -> pd.DataFrame:
+    def add_28d_mortality_label(self, stays: pd.DataFrame) -> pd.DataFrame:
 
         stays["death_time"] = stays["deathtime"].fillna(stays["dod"])
 
@@ -70,7 +70,7 @@ class AlcoholicCirrhosisExtractor(BaseExtractor):
 
         stays = self.prepare_stays()
         stays = self.add_ac_diagnosis(stays)
-        stays = self.add_mortality_label(stays)
+        stays = self.add_28d_mortality_label(stays)
 
         # Match paper script logic:
         # 1) keep AC stays, 2) then keep first ICU stay per subject within AC stays.

@@ -2,7 +2,7 @@ from pathlib import Path
 import pandas as pd
 
 from flab_cohorts.utils.dataset_loader import *
-
+from flab_cohorts.utils.logger import get_logger
 
 
 def extract_diag_pts(data_path: Path, icd_code: str) -> pd.DataFrame:
@@ -38,3 +38,18 @@ def extract_chemo_cohort(df: pd.DataFrame, data_path: Path):
     chemo_df = df[df["subject_id"].isin(set(df[df["chemo"] == 1]["subject_id"]))]
     return chemo_df
 
+def save_cohort(cohort: pd.DataFrame, paths: dict, cohort_name: str) -> None:
+    
+    logger = get_logger("")
+    
+    cols = ["subject_id", "hadm_id", "stay_id", "intime", "outtime", "race", "los", "gender", "age", "dod", "label"]
+    cohort = cohort[cols]
+
+    pct = 100 * cohort["label"].mean()
+    logger.info("Number of ICU stays in cohort: %s", cohort.stay_id.nunique())
+    logger.info("Number of patients in cohort: %s", cohort.subject_id.nunique())
+    logger.info("Number of %s deaths: %s", cohort_name, cohort[cohort["label"] == 1].stay_id.nunique())
+    logger.info("%s positive rate: %.2f%%", cohort_name, pct)
+
+    cohort.to_csv(paths["cohort_path"] / f"cohort_{cohort_name}.csv", index=False)
+    logger.info(f"{cohort_name} cohort saved.")
