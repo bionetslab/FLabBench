@@ -3,7 +3,6 @@ This class extracts the atrial fibrillation mortality cohort from the MIMIC data
 Reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC11667998/
 """
 # ICU
-#ULCER: Stage II 
 
 import pandas as pd
 from dataclasses import dataclass

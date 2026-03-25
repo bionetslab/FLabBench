@@ -3,7 +3,6 @@ This class extracts the alcoholic cirrhosis mortality cohort from the MIMIC data
 Reference: ??
 """
 # ICU
-#ULCER: Stage II 
 
 import pandas as pd
 from dataclasses import dataclass
