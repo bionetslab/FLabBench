@@ -94,7 +94,7 @@ def load_icu_stays(data_path: Path) -> pd.DataFrame:
     p = os.path.join(data_path, "icu/icustays.csv.gz")
     if not os.path.exists(p):
         raise FileNotFoundError(f"icustays.csv.gz not found under {data_path}/icu/")
-    df = pd.read_csv(p, compression="gzip", header=0, usecols=["subject_id", "hadm_id", "stay_id","intime", "outtime","los"], parse_dates=["intime", "outtime"])
+    df = pd.read_csv(p, compression="gzip", header=0, usecols=["subject_id", "hadm_id", "stay_id","intime", "outtime","los","first_careunit", "last_careunit"], parse_dates=["intime", "outtime"])
     return df
 
 def load_icu_procedures(data_path: Path) -> pd.DataFrame:
