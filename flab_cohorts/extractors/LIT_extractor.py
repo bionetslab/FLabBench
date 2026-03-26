@@ -5,7 +5,7 @@ from flab_cohorts.extractors.LIT.acute_kidney_injury import AcuteKidneyInjuryExt
 from flab_cohorts.extractors.LIT.gastrointestinal_bleeding import GastrointestinalBleedingExtractor
 from flab_cohorts.extractors.LIT.ulcer import PressureUlcerExtractor
 from flab_cohorts.extractors.LIT.alcoholic_cirrhosis_mortality import AlcoholicCirrhosisExtractor
-from flab_cohorts.extractors.LIT.atrial_fibrillation_mortality import HFAndAFExtractor
+from flab_cohorts.extractors.LIT.heart_failure_atrial_fibrillation_mortality import HFAndAFExtractor
 from flab_cohorts.extractors.LIT.bone_tumor_mortality import BoneTumorExtractor
 from flab_cohorts.extractors.LIT.immunocompromised_mortality import ImmunocompromisedExtractor
 from flab_cohorts.extractors.LIT.liver_cirrhosis_mortality import LiverCirrhosisExtractor
