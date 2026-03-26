@@ -128,7 +128,7 @@ def load_labevents_for_itemid(data_path: Path, itemid: int, usecols=None, chunks
 
 
 def load_icu_chartevents_for_itemid(data_path: Path, itemids: list, usecols=None, chunksize=1_000_000) -> pd.DataFrame:
-    usecols=["subject_id", "hadm_id", "stay_id", "itemid", "charttime", "valuenum"]
+    usecols=["subject_id", "hadm_id", "stay_id", "itemid", "charttime", "valuenum","value"]
     data_path = os.path.join(data_path, "icu/chartevents.csv.gz")
     chunks = []
     for chunk in tqdm(pd.read_csv(data_path, compression="gzip", usecols=usecols, chunksize=chunksize, parse_dates=["charttime"])):
