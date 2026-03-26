@@ -5,7 +5,7 @@ from flab_cohorts.extractors.LIT.acute_kidney_injury import AcuteKidneyInjuryExt
 from flab_cohorts.extractors.LIT.gastrointestinal_bleeding import GastrointestinalBleedingExtractor
 from flab_cohorts.extractors.LIT.ulcer import PressureUlcerExtractor
 from flab_cohorts.extractors.LIT.alcoholic_cirrhosis_mortality import AlcoholicCirrhosisExtractor
-from flab_cohorts.extractors.LIT.atrial_fibrillation_mortality import AtrialFibrillationExtractor
+from flab_cohorts.extractors.LIT.atrial_fibrillation_mortality import HFAndAFExtractor
 from flab_cohorts.extractors.LIT.bone_tumor_mortality import BoneTumorExtractor
 from flab_cohorts.extractors.LIT.immunocompromised_mortality import ImmunocompromisedExtractor
 from flab_cohorts.extractors.LIT.liver_cirrhosis_mortality import LiverCirrhosisExtractor
@@ -43,8 +43,8 @@ class LITExtractor(BaseExtractor):
         elif cohort == "ac_mortality":
             return AlcoholicCirrhosisExtractor(self.args).extract_cohort()
         
-        elif cohort == "af_mortality":
-            return AtrialFibrillationExtractor(self.args).extract_cohort()
+        elif cohort == "hf_and_af_mortality":
+            return HFAndAFExtractor(self.args).extract_cohort()
         
         elif cohort == "bt_mortality":
             return BoneTumorExtractor(self.args).extract_cohort()

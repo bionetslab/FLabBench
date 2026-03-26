@@ -1,5 +1,5 @@
 """
-This class extracts the atrial fibrillation mortality cohort from the MIMIC dataset.
+This class extracts the heart failure + atrial fibrillation mortality cohort from the MIMIC dataset.
 Reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC11667998/
 """
 # ICU
@@ -12,15 +12,15 @@ tqdm.pandas()
 
 from flab_cohorts.extractors.base import BaseExtractor
 from flab_cohorts.utils.dataset_loader import load_admissions, load_diagnoses, load_patients, load_icu_stays
-from flab_cohorts.utils.logger import get_logger
-
-logger = get_logger("ATRIAL_FIBRILLATION_MORTALITY")
+from flab_cohorts.utils.logger import get_logger 
+from flab_cohorts.extractors.LIT.cohort_utils import save_cohort
+logger = get_logger("HF_AND_AF_MORTALITY")
 
 #HF Heart Failure
 #AF Atrial Fibrillation
 
 @dataclass
-class AtrialFibrillationConfig:
+class HFAndAFConfig:
     age_min: float = 18.0
     age_max: float = 120.0
     min_los_days: float = 1.0
@@ -36,8 +36,8 @@ class AtrialFibrillationConfig:
     
 
 
-class AtrialFibrillationExtractor(BaseExtractor):
-    def __init__(self, args, config: AtrialFibrillationConfig = AtrialFibrillationConfig()):
+class HFAndAFExtractor(BaseExtractor):
+    def __init__(self, args, config: HFAndAFConfig = HFAndAFConfig()):
         super().__init__(args)
         self.config = config
         
@@ -70,7 +70,7 @@ class AtrialFibrillationExtractor(BaseExtractor):
         return stays 
     
     def extract_cohort(self):
-        """Run atrial fibrillation mortality cohort extraction."""
+        """Run heart failure + atrial fibrillation mortality cohort extraction."""
         
         stays = self.prepare_stays()
         stays = self.add_HF_and_AF_diagnosis(stays)
@@ -84,23 +84,9 @@ class AtrialFibrillationExtractor(BaseExtractor):
 
         cohort = cohort[cohort["is_first_icustay_with_HF_and_AF"] & cohort["has_min_icu_los"] & cohort["is_age_eligible"]]
 
-        
+        cohort["label"] = cohort["inhospital_mortality"].astype(int)
             
-        self.save_cohort(cohort)
+        save_cohort(cohort, self.paths, "hf_and_af_mortality")
 
 
-    def save_cohort(self, cohort: pd.DataFrame) -> None:
-        """Save final atrial fibrillation mortality cohort and report summary stats."""
-        
-        cohort = cohort.rename(columns={"inhospital_mortality": "label"})
-        cols = ["subject_id", "hadm_id", "stay_id", "intime", "outtime", "race", "los", "gender", "age", "dod", "label"]
-        cohort = cohort[cols]
 
-        pct = 100 * cohort["label"].mean()
-        logger.info("Number of ICU stays in atrial fibrillation mortality cohort: %s", cohort.stay_id.nunique())
-        logger.info("Number of patients in atrial fibrillation mortality cohort: %s", cohort.subject_id.nunique())
-        logger.info("Number of stays with atrial fibrillation mortality: %s", cohort[cohort["label"] == 1].stay_id.nunique())
-        logger.info("Atrial fibrillation mortality positive rate: %.2f%%", pct)
-
-        cohort.to_csv(self.paths["cohort_path"] / "cohort_atrial_fibrillation_mortality.csv", index=False)
-        logger.info("Atrial fibrillation mortality cohort saved.")
