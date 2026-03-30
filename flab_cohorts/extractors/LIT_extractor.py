@@ -15,14 +15,41 @@ from flab_cohorts.extractors.LIT.pneumonia_mortality import PneumoniaExtractor
 from flab_cohorts.extractors.LIT.prostate_cancer import ProstateCancerExtractor
 from flab_cohorts.extractors.LIT.urinary_tract_infection_mortality import UrinaryTractInfectionExtractor
 from flab_cohorts.extractors.LIT.atrial_fibrillation_mortality import AtrialFibrillationExtractor
+from flab_cohorts.utils.logger import get_logger
 
 #TODO: Make cohort names consistent
+logger = get_logger("LIT_EXTRACTOR")
 
 class LITExtractor(BaseExtractor):
     def __init__(self, args):
         super().__init__(args)
         
     def extract_full_cohort(self, cohort: str):
+        if cohort == "all":
+            cohort_keys = [
+                "aplasia",
+                "neutropenic_fever",
+                "acute_kidney_injury",
+                "gi_bleeding",
+                "ulcer",
+                "ac_mortality",
+                "hf_and_af_mortality",
+                "bt_mortality",
+                "immune_mortality",
+                "lc_mortality",
+                "mi_mortality",
+                "obesity_pneumonia",
+                "pneumonia_mortality",
+                "prostate_cancer",
+                "ut_infection_mortality",
+                "af_mortality",
+            ]
+            results = {}
+            for cohort_key in cohort_keys:
+                logger.info("Extracting cohort: %s", cohort_key)
+                results[cohort_key] = self.extract_full_cohort(cohort_key)
+                logger.info("Done: %s", cohort_key)
+            return results
         
         if cohort == "aplasia":
             return AplasiaExtractor(self.args).extract_cohort()
