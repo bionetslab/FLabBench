@@ -150,7 +150,7 @@ class AcuteKidneyInjuryExtractor(ICUBaseExtractor):
         
         logger.info("Extracting acute kidney injury cohort")
         
-        stays = self.initialize_stays()
+        stays = self.initialize_icu_stays()
         stays["is_black"] = stays["race"].isin(['BLACK/AFRICAN AMERICAN', 'BLACK/AFRICAN', 'BLACK/CAPE VERDEAN', 'BLACK/HAITIAN'])
         stays = self.add_ckd_diagnosis(stays)
         stays = self.add_dialysis_procedure(stays)

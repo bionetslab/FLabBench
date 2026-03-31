@@ -66,7 +66,7 @@ class GastrointestinalBleedingExtractor(ICUBaseExtractor):
 
     def extract_cohort(self):
         
-        stays = self.initialize_stays()
+        stays = self.initialize_icu_stays()
         stays["is_first_icustay_hadm"] = (stays.groupby("hadm_id")["intime"].transform("min") == stays["intime"])
         stays = self.add_diagnosis_flags(stays, match="exact")
         stays = self.add_transfusions(stays)

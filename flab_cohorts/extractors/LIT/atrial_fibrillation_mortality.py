@@ -91,7 +91,7 @@ class AtrialFibrillationExtractor(ICUBaseExtractor):
     def extract_cohort(self):
         
         
-        stays = self.initialize_stays()
+        stays = self.initialize_icu_stays()
         stays = self.add_diagnosis_flags(stays, self.config.ALL_AF_CODES, level="subject")
         stays = self.add_cardiac_surgery_labels(stays)
 

@@ -102,7 +102,7 @@ class DTBExtractor(BaseExtractor):
             n_neg = cohort_counts.get(0, 0)
 
             if n_pos > 10 and n_neg > 50:
-                self.save_cohort(cohort, D1, D2, W)
+                self.save_edge_cohort(cohort, D1, D2, W)
             else:
                 print(f"cohort {D1}-{D2}-{W} has {n_pos} positive and {n_neg} negative. Skipping...")
 
@@ -117,8 +117,7 @@ class DTBExtractor(BaseExtractor):
             })  
     
     
-    def save_cohort(self, cohort: pd.DataFrame, D1: str, D2: str, W: float):
-        
+    def save_edge_cohort(self, cohort: pd.DataFrame, D1: str, D2: str, W: float):
         cohort = cohort.rename(columns={"target_D2_5y": "label"})
         cohort.to_csv(self.paths["cohort_path"] / f"cohort_{D1}_{D2}_{W}.csv.gz", index=False)
     

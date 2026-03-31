@@ -95,7 +95,7 @@ class LiverCirrhosisExtractor(ICUBaseExtractor):
         )
         first_hadm_by_subject = self._first_adm_df.set_index("subject_id")["hadm_id"]
 
-        stays = self.initialize_stays()
+        stays = self.initialize_icu_stays()
         stays["is_first_hadm"] = stays["hadm_id"].eq(stays["subject_id"].map(first_hadm_by_subject))
         stays["icu_los_hours"] = pd.to_numeric(stays["los"], errors="coerce") * 24.0
         stays.loc[stays["icu_los_hours"].isna(), "icu_los_hours"] = (stays["outtime"] - stays["intime"]).dt.total_seconds() / 3600.0

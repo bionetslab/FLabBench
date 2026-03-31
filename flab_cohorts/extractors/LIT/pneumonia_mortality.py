@@ -30,7 +30,7 @@ class PneumoniaExtractor(ICUBaseExtractor):
     def extract_cohort(self) -> None:
 
 
-        stays = self.initialize_stays()
+        stays = self.initialize_icu_stays()
 
         first_hadm_ids = set(
             self.adms.sort_values(["subject_id", "admittime"])

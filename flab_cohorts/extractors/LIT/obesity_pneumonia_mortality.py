@@ -31,10 +31,8 @@ class ObesityPneumoniaExtractor(ICUBaseExtractor):
         self.config = config
 
     def add_obesity_labels(self, stays: pd.DataFrame) -> pd.DataFrame:
-        chartevents = load_icu_chartevents_for_itemid(
-            self.data_path,
-            list(self.config.HEIGHT_IDS) + list(self.config.WEIGHT_IDS),
-        )
+        chartevents = load_icu_chartevents_for_itemid(self.data_path,list(self.config.HEIGHT_IDS) + list(self.config.WEIGHT_IDS))
+        
         height = chartevents[chartevents.itemid.isin(self.config.HEIGHT_IDS)].groupby("hadm_id")["valuenum"].median()
         weight = chartevents[chartevents.itemid.isin(self.config.WEIGHT_IDS)].groupby("hadm_id")["valuenum"].median()
         stays["height_cm"] = stays["hadm_id"].map(height)
@@ -45,7 +43,7 @@ class ObesityPneumoniaExtractor(ICUBaseExtractor):
 
     def extract_cohort(self):
 
-        stays = self.initialize_stays()
+        stays = self.initialize_icu_stays()
         stays = self.add_diagnosis_flags(stays)
         stays = self.add_obesity_labels(stays)
         stays = self.add_timed_mortality(stays, days=self.config.mortality_days, col="mortality_days")

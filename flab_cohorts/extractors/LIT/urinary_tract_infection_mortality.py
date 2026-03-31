@@ -28,7 +28,7 @@ class UrinaryTractInfectionExtractor(ICUBaseExtractor):
     def extract_cohort(self) -> None:
         logger.info("Extracting urinary tract infection in-hospital mortality cohort")
 
-        stays = self.initialize_stays()
+        stays = self.initialize_icu_stays()
         stays = self.add_diagnosis_flags(stays)
         stays = self.add_inhospital_mortality(stays)
 

@@ -1,14 +1,13 @@
 import importlib
-from flab_cohorts.extractors.base import BaseExtractor
 from flab_cohorts.extractors.LIT import REGISTRY
 from flab_cohorts.utils.logger import get_logger
 
 logger = get_logger("LIT_EXTRACTOR")
 
 
-class LITExtractor(BaseExtractor):
+class LITExtractor:
     def __init__(self, args):
-        super().__init__(args)
+        self.args = args
 
     def extract_full_cohort(self, cohort: str):
         if cohort == "all":

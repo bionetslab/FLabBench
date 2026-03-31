@@ -29,7 +29,7 @@ class MyocardialInfarctionExtractor(ICUBaseExtractor):
     def extract_cohort(self):
 
 
-        stays = self.initialize_stays()
+        stays = self.initialize_icu_stays()
         stays = self.add_diagnosis_flags(stays)
         stays["is_ccu_stay"] = stays["first_careunit"].str.contains("CCU|CORONARY", na=False)
         stays = self.add_timed_mortality(stays, days=self.config.mortality_days, col="mortality_days")

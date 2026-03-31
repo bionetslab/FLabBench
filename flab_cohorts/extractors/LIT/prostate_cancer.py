@@ -8,7 +8,7 @@ Reference: https://www.sciencedirect.com/science/article/pii/S2949866X23000114
 import pandas as pd
 from dataclasses import dataclass
 
-from flab_cohorts.extractors.base import BaseExtractor
+from flab_cohorts.extractors.base import BaseExtractor, HOSP_COHORT_COLUMNS
 from flab_cohorts.utils.logger import get_logger
 
 logger = get_logger("PROSTATE_CANCER")
@@ -23,12 +23,8 @@ class ProstateCancerConfig:
 
 
 class ProstateCancerExtractor(BaseExtractor):
-    COHORT_COLUMNS = [
-        "subject_id", "hadm_id", "admittime", "dischtime",
-        "race", "los", "gender", "age", "dod", "label",
-    ]
-
-
+    
+    COHORT_COLUMNS = HOSP_COHORT_COLUMNS
 
     def __init__(self, args, config: ProstateCancerConfig = ProstateCancerConfig()):
         super().__init__(args)

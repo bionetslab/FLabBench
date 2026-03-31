@@ -44,7 +44,7 @@ class BoneTumorExtractor(ICUBaseExtractor):
     def extract_cohort(self):
    
 
-        stays = self.initialize_stays()
+        stays = self.initialize_icu_stays()
         stays = self.add_diagnosis_flags(stays)
         stays = self.add_survival_label(stays)
 

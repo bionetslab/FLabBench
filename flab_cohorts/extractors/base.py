@@ -8,6 +8,16 @@ from flab_cohorts.utils.logger import get_logger
 
 logger = get_logger("EXTRACTOR")
 
+HOSP_COHORT_COLUMNS = [
+    "subject_id", "hadm_id", "admittime", "dischtime",
+    "race", "los", "gender", "age", "dod", "label",
+]
+
+ICU_COHORT_COLUMNS = [
+    "subject_id", "hadm_id", "stay_id", "intime", "outtime",
+    "race", "los", "gender", "age", "dod", "label",
+]
+
 
 class BaseExtractor:
     def __init__(self, args):
@@ -28,6 +38,24 @@ class BaseExtractor:
         self.stays = load_icu_stays(path)
         cols = ["hadm_id", "admittime", "dischtime", "deathtime","hospital_expire_flag", "race", "age", "gender", "dod"]
         self.stays = self.stays.merge(self.adms[cols], on="hadm_id", how="left")
+
+    def add_diagnosis_flags(self, df: pd.DataFrame, icd_codes: list = None, column: str = "has_diagnosis", match: str = "startswith", level: str = "hadm") -> pd.DataFrame:
+        
+        if icd_codes is None:
+            icd_codes = self.config.ALL_CODES
+        diags = self.diags.copy()
+        diags["icd_code"] = diags["icd_code"].str.replace(".", "", regex=False)
+        if match == "startswith":
+            mask = diags["icd_code"].str.startswith(icd_codes)
+        else:
+            mask = diags["icd_code"].isin(icd_codes)
+            
+        if level == "subject":
+            matched = set(diags.loc[mask, "subject_id"].dropna().unique())
+            df[column] = df["subject_id"].isin(matched)
+        else:
+            df[column] = df["hadm_id"].isin(diags.loc[mask, "hadm_id"])
+        return df
 
     def save_cohort(self, cohort, cohort_name):
 
@@ -51,12 +79,9 @@ class BaseExtractor:
 
 
 class ICUBaseExtractor(BaseExtractor):
-    COHORT_COLUMNS = [
-        "subject_id", "hadm_id", "stay_id", "intime", "outtime",
-        "race", "los", "gender", "age", "dod", "label",
-    ]
+    COHORT_COLUMNS = ICU_COHORT_COLUMNS
 
-    def initialize_stays(self) -> pd.DataFrame:
+    def initialize_icu_stays(self) -> pd.DataFrame:
 
         stays = self.stays.copy()
         stays["is_age_eligible"] = ((stays["age"] >= self.config.age_min) & (stays["age"] <= self.config.age_max))
@@ -67,32 +92,6 @@ class ICUBaseExtractor(BaseExtractor):
         stays["is_first_icustay"] = (stays.groupby("subject_id")["intime"].transform("min") == stays["intime"])
         return stays
 
-
-
-    def add_diagnosis_flags(
-        self,
-        stays,
-        icd_codes=None,
-        column="has_diagnosis",
-        match="startswith",
-        level="hadm",
-    ):
-
-        if icd_codes is None:
-            icd_codes = self.config.ALL_CODES
-        diags = self.diags.copy()
-        diags["icd_code"] = diags["icd_code"].str.replace(".", "", regex=False)
-        if match == "startswith":
-            mask = diags["icd_code"].str.startswith(icd_codes)
-        else:
-            mask = diags["icd_code"].isin(icd_codes)
-            
-        if level == "subject":
-            matched = set(diags.loc[mask, "subject_id"].dropna().unique())
-            stays[column] = stays["subject_id"].isin(matched)
-        else:
-            stays[column] = stays["hadm_id"].isin(diags.loc[mask, "hadm_id"])
-        return stays
 
     def add_inhospital_mortality(self, stays):
         stays["in_hospital_mortality"] = stays["deathtime"].notna()

@@ -25,7 +25,7 @@ class AlcoholicCirrhosisExtractor(ICUBaseExtractor):
     def extract_cohort(self):
 
 
-        stays = self.initialize_stays()
+        stays = self.initialize_icu_stays()
         stays = self.add_diagnosis_flags(stays, self.config.ac_icd_codes, "has_ac_diagnosis", match="exact")
         stays = self.add_timed_mortality(stays, days=28, col="mortality_28d")
 

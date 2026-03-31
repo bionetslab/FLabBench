@@ -13,9 +13,8 @@ from tqdm import tqdm
 tqdm.pandas()
 
 
-from flab_cohorts.extractors.base import BaseExtractor
-from flab_cohorts.extractors.LIT.cohort_utils import extract_diag_pts, extract_chemo_cohort, find_itemid_by_label
-from flab_cohorts.utils.dataset_loader import load_labevents_for_cohort, load_d_icd_procedures, load_procedures
+from flab_cohorts.extractors.base import BaseExtractor, HOSP_COHORT_COLUMNS
+from flab_cohorts.utils.dataset_loader import load_labevents_for_cohort, load_d_icd_procedures, load_procedures, load_chemo_procedure_codes, find_itemid_by_label
 from flab_cohorts.utils.logger import get_logger
 
 logger = get_logger("APLASIA")
@@ -30,24 +29,31 @@ class AplasiaConfig:
 
 
 class AplasiaExtractor(BaseExtractor):
-    COHORT_COLUMNS = [
-        "subject_id", "hadm_id", "admittime", "dischtime",
-        "race", "los", "gender", "age", "dod", "label",
-    ]
+    COHORT_COLUMNS = HOSP_COHORT_COLUMNS
 
     def __init__(self, args, config: AplasiaConfig = AplasiaConfig()):
         super().__init__(args)
         self.config = config
 
     def build_cancer_chemo_cohort(self) -> pd.DataFrame:
-        
-        cancer_pts = extract_diag_pts(self.data_path, icd_code=self.config.cancer_icd_code)
-        cancer_cohort = self.adms[self.adms["subject_id"].isin(cancer_pts["subject_id"])]
-        return extract_chemo_cohort(cancer_cohort, self.data_path)
+        cohort = self.adms.copy()
+        cohort = self.add_diagnosis_flags(cohort, icd_codes=self.config.cancer_icd_code, column="has_cancer", match="startswith", level="subject")
+        cohort = cohort[cohort["has_cancer"]].drop(columns=["has_cancer"])
 
+        proc_codes = load_chemo_procedure_codes(self.data_path)
+        proc = load_procedures(self.data_path)
+        pattern = "|".join(proc_codes)
+        chemo_hadms = proc.loc[proc["icd_code"].str.contains(pattern, na=False), "hadm_id"].unique()
+        cohort["chemo"] = cohort["hadm_id"].isin(chemo_hadms).astype(int)
+
+        cohort = self.add_diagnosis_flags(cohort, icd_codes="Z5111", column="has_chemo_diag", match="startswith", level="hadm")
+        cohort["chemo"] = cohort["chemo"] | cohort["has_chemo_diag"].astype(int)
+        cohort = cohort.drop(columns=["has_chemo_diag"])
+
+        chemo_subjects = cohort.loc[cohort["chemo"] == 1, "subject_id"].unique()
+        return cohort[cohort["subject_id"].isin(chemo_subjects)].copy()
 
     def extract_anc_labs(self, labs_df: pd.DataFrame) -> pd.DataFrame:
-        
         anc_itemids = find_itemid_by_label(self.data_path, self.config.anc_label)
         labs_df = labs_df.groupby(['subject_id', 'hadm_id', 'itemid', 'charttime'])["valuenum"].max().reset_index()
         anc_df = labs_df[labs_df['itemid'].isin(anc_itemids)]
@@ -161,15 +167,12 @@ class AplasiaExtractor(BaseExtractor):
                             return 0
 
     def extract_cohort(self):
-        """Run aplasia cohort extraction."""
         
         cohort = self.build_cancer_chemo_cohort()
         labs = load_labevents_for_cohort(self.data_path, cohort)
         anc_labs = self.extract_anc_labs(labs)
-
         cohort = self.add_transfusion_flag(cohort)
 
-        logger.info("Extracting aplasia cohort...")
         cohort["current_aplasia"] = cohort.progress_apply(lambda x: self.current_aplasia_occurrence(x, labs=anc_labs), axis=1)
         cohort[["next_aplasia", "next_aplasia_time"]] = cohort.progress_apply(lambda x: pd.Series(self.after_admission_aplasia_occurrence(x, cohort, labs=anc_labs)),axis=1)
         cohort["aplasia_case"] = cohort.progress_apply(lambda x: self.split_aplasia_cases(x, target_cohort=cohort), axis=1)

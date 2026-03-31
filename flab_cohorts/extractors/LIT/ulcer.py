@@ -51,7 +51,7 @@ class PressureUlcerExtractor(ICUBaseExtractor):
         return stays
 
     def extract_cohort(self):
-        stays = self.initialize_stays()
+        stays = self.initialize_icu_stays()
         stays = self.add_pu_stage2_labels(stays)
 
         cohort = stays[

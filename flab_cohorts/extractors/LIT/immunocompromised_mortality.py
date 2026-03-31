@@ -58,7 +58,7 @@ class ImmunocompromisedExtractor(ICUBaseExtractor):
 
     def extract_cohort(self):
 
-        stays = self.initialize_stays()
+        stays = self.initialize_icu_stays()
         stays["icu_los_hours"] = ((stays["outtime"] - stays["intime"]).dt.total_seconds() / 3600.0)
         stays["has_min_icu_los"] = stays["icu_los_hours"] >= self.config.min_los_hours
         stays = self.add_diagnosis_flags(stays)

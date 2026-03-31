@@ -48,7 +48,7 @@ class HFAndAFExtractor(ICUBaseExtractor):
 
     def extract_cohort(self):
 
-        stays = self.initialize_stays()
+        stays = self.initialize_icu_stays()
         stays = self.add_hf_and_af_diagnosis(stays)
         stays = self.add_inhospital_mortality(stays)
 
