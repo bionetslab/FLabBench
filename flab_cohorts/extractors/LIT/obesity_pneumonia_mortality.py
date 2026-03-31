@@ -26,6 +26,7 @@ class ObesityPneumoniaConfig:
 
 
 class ObesityPneumoniaExtractor(ICUBaseExtractor):
+    COHORT_NAME = "obesity_pneumonia"
     def __init__(self, args, config: ObesityPneumoniaConfig = ObesityPneumoniaConfig()):
         super().__init__(args)
         self.config = config
@@ -53,4 +54,4 @@ class ObesityPneumoniaExtractor(ICUBaseExtractor):
         cohort = cohort[cohort["has_bmi"]]
         cohort["label"] = cohort["mortality_days"]
 
-        self.save_cohort(cohort, "obesity_pneumonia")
+        self.save_cohort(cohort)

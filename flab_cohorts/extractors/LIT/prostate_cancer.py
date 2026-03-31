@@ -23,7 +23,7 @@ class ProstateCancerConfig:
 
 
 class ProstateCancerExtractor(BaseExtractor):
-    
+    COHORT_NAME = "prostate_cancer"
     COHORT_COLUMNS = HOSP_COHORT_COLUMNS
 
     def __init__(self, args, config: ProstateCancerConfig = ProstateCancerConfig()):
@@ -95,4 +95,4 @@ class ProstateCancerExtractor(BaseExtractor):
             cohort.loc[cohort["label"] == 0, "subject_id"].nunique(),
         )
 
-        self.save_cohort(cohort, "prostate_cancer")
+        self.save_cohort(cohort)

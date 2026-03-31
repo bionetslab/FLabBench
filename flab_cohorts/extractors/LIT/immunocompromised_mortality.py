@@ -52,6 +52,7 @@ class ImmunocompromisedConfig:
 
 
 class ImmunocompromisedExtractor(ICUBaseExtractor):
+    COHORT_NAME = "immunocompromised"
     def __init__(self, args, config: ImmunocompromisedConfig = ImmunocompromisedConfig()):
         super().__init__(args)
         self.config = config
@@ -72,4 +73,4 @@ class ImmunocompromisedExtractor(ICUBaseExtractor):
         cohort = self.first_stay_per_patient(cohort)
         cohort["label"] = cohort["mortality_28d"]
 
-        self.save_cohort(cohort, "immunocompromised_mortality")
+        self.save_cohort(cohort)

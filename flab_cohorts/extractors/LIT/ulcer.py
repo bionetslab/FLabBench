@@ -24,6 +24,7 @@ class PressureUlcerConfig:
 
 
 class PressureUlcerExtractor(ICUBaseExtractor):
+    COHORT_NAME = "pressure_ulcer"
     def __init__(self, args, config: PressureUlcerConfig = PressureUlcerConfig()):
         super().__init__(args)
         self.config = config
@@ -61,4 +62,4 @@ class PressureUlcerExtractor(ICUBaseExtractor):
         ].copy()
         cohort["label"] = cohort["has_pu_in_prediction_window"].astype(int)
 
-        self.save_cohort(cohort, "pressure_ulcer")
+        self.save_cohort(cohort)

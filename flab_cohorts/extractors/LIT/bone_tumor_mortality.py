@@ -22,6 +22,7 @@ class BoneTumorConfig:
 
 
 class BoneTumorExtractor(ICUBaseExtractor):
+    COHORT_NAME = "bone_tumor"
     def __init__(self, args, config: BoneTumorConfig = BoneTumorConfig()):
         super().__init__(args)
         self.config = config
@@ -53,4 +54,4 @@ class BoneTumorExtractor(ICUBaseExtractor):
         cohort = cohort[cohort["has_min_icu_los"] & cohort["is_age_eligible"]]
         cohort["label"] = cohort["long_term_mortality"]
 
-        self.save_cohort(cohort, "bone_tumor_mortality")
+        self.save_cohort(cohort)

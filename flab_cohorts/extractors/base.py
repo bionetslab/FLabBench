@@ -57,7 +57,8 @@ class BaseExtractor:
             df[column] = df["hadm_id"].isin(diags.loc[mask, "hadm_id"])
         return df
 
-    def save_cohort(self, cohort, cohort_name):
+    def save_cohort(self, cohort, cohort_name=None):
+        cohort_name = cohort_name or self.COHORT_NAME
 
         columns = getattr(self, "COHORT_COLUMNS", None)
         if columns is not None:

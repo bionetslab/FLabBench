@@ -21,6 +21,7 @@ class UrinaryTractInfectionConfig:
 
 
 class UrinaryTractInfectionExtractor(ICUBaseExtractor):
+    COHORT_NAME = "uti"
     def __init__(self, args, config: UrinaryTractInfectionConfig = UrinaryTractInfectionConfig()):
         super().__init__(args)
         self.config = config
@@ -36,4 +37,4 @@ class UrinaryTractInfectionExtractor(ICUBaseExtractor):
         cohort = self.first_stay_per_patient(cohort)
         cohort["label"] = cohort["in_hospital_mortality"].astype(int)
 
-        self.save_cohort(cohort, "urinary_tract_infection_mortality")
+        self.save_cohort(cohort)

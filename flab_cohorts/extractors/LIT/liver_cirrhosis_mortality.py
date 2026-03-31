@@ -37,6 +37,7 @@ class LiverCirrhosisConfig:
 
 
 class LiverCirrhosisExtractor(ICUBaseExtractor):
+    COHORT_NAME = "liver_cirrhosis"
     def __init__(self, args, config: LiverCirrhosisConfig = LiverCirrhosisConfig()):
         super().__init__(args)
         self.config = config

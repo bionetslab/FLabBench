@@ -1,74 +1,26 @@
 """
 LIT (literature-based) cohort extractors.
-
-REGISTRY maps short cohort keys → (module_path, class_name) for lazy
-import by LITExtractor.  To add a new cohort, create the extractor
-module under this package and add one entry here.
+REGISTRY maps cohort key → (module_path, class_name).
+Keys must match the COHORT_NAME class attribute on each extractor.
 """
 
+_LIT = "flab_cohorts.extractors.LIT"
+
 REGISTRY = {
-    "aplasia": (
-        "flab_cohorts.extractors.LIT.aplasia",
-        "AplasiaExtractor",
-    ),
-    "neutropenic_fever": (
-        "flab_cohorts.extractors.LIT.neutropenic_fever",
-        "NeutropenicFeverExtractor",
-    ),
-    "acute_kidney_injury": (
-        "flab_cohorts.extractors.LIT.acute_kidney_injury",
-        "AcuteKidneyInjuryExtractor",
-    ),
-    "gi_bleeding": (
-        "flab_cohorts.extractors.LIT.gastrointestinal_bleeding",
-        "GastrointestinalBleedingExtractor",
-    ),
-    "ulcer": (
-        "flab_cohorts.extractors.LIT.ulcer",
-        "PressureUlcerExtractor",
-    ),
-    "ac_mortality": (
-        "flab_cohorts.extractors.LIT.alcoholic_cirrhosis_mortality",
-        "AlcoholicCirrhosisExtractor",
-    ),
-    "hf_and_af_mortality": (
-        "flab_cohorts.extractors.LIT.heart_failure_atrial_fibrillation_mortality",
-        "HFAndAFExtractor",
-    ),
-    "bt_mortality": (
-        "flab_cohorts.extractors.LIT.bone_tumor_mortality",
-        "BoneTumorExtractor",
-    ),
-    "immune_mortality": (
-        "flab_cohorts.extractors.LIT.immunocompromised_mortality",
-        "ImmunocompromisedExtractor",
-    ),
-    "lc_mortality": (
-        "flab_cohorts.extractors.LIT.liver_cirrhosis_mortality",
-        "LiverCirrhosisExtractor",
-    ),
-    "mi_mortality": (
-        "flab_cohorts.extractors.LIT.myocardial_infarction_mortality",
-        "MyocardialInfarctionExtractor",
-    ),
-    "obesity_pneumonia": (
-        "flab_cohorts.extractors.LIT.obesity_pneumonia_mortality",
-        "ObesityPneumoniaExtractor",
-    ),
-    "pneumonia_mortality": (
-        "flab_cohorts.extractors.LIT.pneumonia_mortality",
-        "PneumoniaExtractor",
-    ),
-    "prostate_cancer": (
-        "flab_cohorts.extractors.LIT.prostate_cancer",
-        "ProstateCancerExtractor",
-    ),
-    "ut_infection_mortality": (
-        "flab_cohorts.extractors.LIT.urinary_tract_infection_mortality",
-        "UrinaryTractInfectionExtractor",
-    ),
-    "af_mortality": (
-        "flab_cohorts.extractors.LIT.atrial_fibrillation_mortality",
-        "AtrialFibrillationExtractor",
-    ),
+    "aplasia":              (f"{_LIT}.aplasia",                                   "AplasiaExtractor"),
+    "neutropenic_fever":    (f"{_LIT}.neutropenic_fever",                         "NeutropenicFeverExtractor"),
+    "aki":                  (f"{_LIT}.acute_kidney_injury",                       "AcuteKidneyInjuryExtractor"),
+    "gi_bleed":             (f"{_LIT}.gastrointestinal_bleeding",                 "GastrointestinalBleedingExtractor"),
+    "pressure_ulcer":       (f"{_LIT}.ulcer",                                     "PressureUlcerExtractor"),
+    "alc_cirrhosis":        (f"{_LIT}.alcoholic_cirrhosis_mortality",             "AlcoholicCirrhosisExtractor"),
+    "hf_af":                (f"{_LIT}.heart_failure_atrial_fibrillation_mortality","HFAndAFExtractor"),
+    "bone_tumor":           (f"{_LIT}.bone_tumor_mortality",                      "BoneTumorExtractor"),
+    "immunocompromised":    (f"{_LIT}.immunocompromised_mortality",               "ImmunocompromisedExtractor"),
+    "liver_cirrhosis":      (f"{_LIT}.liver_cirrhosis_mortality",                 "LiverCirrhosisExtractor"),
+    "mi":                   (f"{_LIT}.myocardial_infarction_mortality",           "MyocardialInfarctionExtractor"),
+    "obesity_pneumonia":    (f"{_LIT}.obesity_pneumonia_mortality",               "ObesityPneumoniaExtractor"),
+    "pneumonia":            (f"{_LIT}.pneumonia_mortality",                       "PneumoniaExtractor"),
+    "prostate_cancer":      (f"{_LIT}.prostate_cancer",                           "ProstateCancerExtractor"),
+    "uti":                  (f"{_LIT}.urinary_tract_infection_mortality",          "UrinaryTractInfectionExtractor"),
+    "af":                   (f"{_LIT}.atrial_fibrillation_mortality",             "AtrialFibrillationExtractor"),
 }

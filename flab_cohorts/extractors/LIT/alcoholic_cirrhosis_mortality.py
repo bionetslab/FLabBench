@@ -18,6 +18,7 @@ class AlcoholicCirrhosisConfig:
 
 
 class AlcoholicCirrhosisExtractor(ICUBaseExtractor):
+    COHORT_NAME = "alc_cirrhosis"
     def __init__(self, args, config: AlcoholicCirrhosisConfig = AlcoholicCirrhosisConfig()):
         super().__init__(args)
         self.config = config
@@ -33,4 +34,4 @@ class AlcoholicCirrhosisExtractor(ICUBaseExtractor):
         cohort = self.first_stay_per_patient(cohort)
         cohort["label"] = cohort["mortality_28d"]
 
-        self.save_cohort(cohort, "alcoholic_cirrhosis_mortality")
+        self.save_cohort(cohort)

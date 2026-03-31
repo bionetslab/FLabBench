@@ -33,6 +33,7 @@ class HFAndAFConfig:
 
 
 class HFAndAFExtractor(ICUBaseExtractor):
+    COHORT_NAME = "hf_af"
     def __init__(self, args, config: HFAndAFConfig = HFAndAFConfig()):
         super().__init__(args)
         self.config = config
@@ -57,4 +58,4 @@ class HFAndAFExtractor(ICUBaseExtractor):
         cohort = cohort[cohort["has_min_icu_los"] & cohort["is_age_eligible"]]
         cohort["label"] = cohort["in_hospital_mortality"].astype(int)
 
-        self.save_cohort(cohort, "hf_and_af_mortality")
+        self.save_cohort(cohort)

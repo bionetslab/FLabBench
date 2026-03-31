@@ -29,6 +29,7 @@ class AplasiaConfig:
 
 
 class AplasiaExtractor(BaseExtractor):
+    COHORT_NAME = "aplasia"
     COHORT_COLUMNS = HOSP_COHORT_COLUMNS
 
     def __init__(self, args, config: AplasiaConfig = AplasiaConfig()):
@@ -184,5 +185,5 @@ class AplasiaExtractor(BaseExtractor):
             "next_aplasia", "next_aplasia_time", "transfusion", "transfusion_date",
         ])
 
-        self.save_cohort(cohort, "aplasia")
+        self.save_cohort(cohort)
         return cohort

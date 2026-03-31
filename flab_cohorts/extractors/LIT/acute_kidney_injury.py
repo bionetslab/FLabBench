@@ -32,6 +32,7 @@ class AKIConfig:
 
 
 class AcuteKidneyInjuryExtractor(ICUBaseExtractor):
+    COHORT_NAME = "aki"
     def __init__(self, args, config: AKIConfig = AKIConfig()):
         super().__init__(args)
         self.config = config
@@ -171,4 +172,4 @@ class AcuteKidneyInjuryExtractor(ICUBaseExtractor):
         ].copy()
         cohort["label"] = cohort["AKI"].astype(int)
 
-        self.save_cohort(cohort, "aki")
+        self.save_cohort(cohort)

@@ -22,6 +22,7 @@ class MyocardialInfarctionConfig:
 
 
 class MyocardialInfarctionExtractor(ICUBaseExtractor):
+    COHORT_NAME = "mi"
     def __init__(self, args, config: MyocardialInfarctionConfig = MyocardialInfarctionConfig()):
         super().__init__(args)
         self.config = config
@@ -39,4 +40,4 @@ class MyocardialInfarctionExtractor(ICUBaseExtractor):
         cohort = cohort[cohort["is_age_eligible"]]
         cohort["label"] = cohort["mortality_days"]
 
-        self.save_cohort(cohort, "myocardial_infarction_mortality")
+        self.save_cohort(cohort)

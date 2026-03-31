@@ -38,7 +38,7 @@ class AtrialFibrillationConfig:
     RYTHM_ITEMIDS = [220048]
 
 class AtrialFibrillationExtractor(ICUBaseExtractor):
-    
+    COHORT_NAME = "af"
     def __init__(self, args, config: AtrialFibrillationConfig = AtrialFibrillationConfig()):
         super().__init__(args)
         self.config = config
@@ -105,4 +105,4 @@ class AtrialFibrillationExtractor(ICUBaseExtractor):
         cohort = self.add_noaf_label(cohort)
         cohort["label"] = cohort["noaf"]
 
-        self.save_cohort(cohort, "atrial_fibrillation")
+        self.save_cohort(cohort)

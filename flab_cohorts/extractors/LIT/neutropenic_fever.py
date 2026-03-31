@@ -30,7 +30,7 @@ class NeutropenicFeverConfig:
 
 
 class NeutropenicFeverExtractor(BaseExtractor):
-    
+    COHORT_NAME = "neutropenic_fever"
     COHORT_COLUMNS = HOSP_COHORT_COLUMNS
 
     def __init__(self, args, config: NeutropenicFeverConfig = NeutropenicFeverConfig()):
@@ -110,5 +110,5 @@ class NeutropenicFeverExtractor(BaseExtractor):
         cohort["label"] = cohort["NF_case"].replace({1: 0, 2: 1}).astype(int)
         cohort = cohort.drop(columns=["NF_case", "hospital_expire_flag", "chemo", "fever", "neutropenia", "NF"])
 
-        self.save_cohort(cohort, "neutropenic_fever")
+        self.save_cohort(cohort)
         return cohort

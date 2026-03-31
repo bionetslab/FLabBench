@@ -33,6 +33,7 @@ class GIBleedingConfig:
 
 
 class GastrointestinalBleedingExtractor(ICUBaseExtractor):
+    COHORT_NAME = "gi_bleed"
     def __init__(self, args, config: GIBleedingConfig = GIBleedingConfig()):
         super().__init__(args)
         self.config = config
@@ -79,4 +80,4 @@ class GastrointestinalBleedingExtractor(ICUBaseExtractor):
         
         cohort["label"] = cohort["has_transf_after5h"].astype(int)
 
-        self.save_cohort(cohort, "gi_bleeding")
+        self.save_cohort(cohort)

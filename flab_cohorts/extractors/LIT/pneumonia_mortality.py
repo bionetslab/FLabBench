@@ -23,6 +23,7 @@ class PneumoniaConfig:
 
 
 class PneumoniaExtractor(ICUBaseExtractor):
+    COHORT_NAME = "pneumonia"
     def __init__(self, args, config: PneumoniaConfig = PneumoniaConfig()):
         super().__init__(args)
         self.config = config
@@ -52,4 +53,4 @@ class PneumoniaExtractor(ICUBaseExtractor):
         ]
         cohort["label"] = cohort["in_hospital_mortality"].astype(int)
 
-        self.save_cohort(cohort, "pneumonia_mortality")
+        self.save_cohort(cohort)
