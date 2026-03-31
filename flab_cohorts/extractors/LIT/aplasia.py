@@ -30,6 +30,11 @@ class AplasiaConfig:
 
 
 class AplasiaExtractor(BaseExtractor):
+    COHORT_COLUMNS = [
+        "subject_id", "hadm_id", "admittime", "dischtime",
+        "race", "los", "gender", "age", "dod", "label",
+    ]
+
     def __init__(self, args, config: AplasiaConfig = AplasiaConfig()):
         super().__init__(args)
         self.config = config
@@ -170,25 +175,11 @@ class AplasiaExtractor(BaseExtractor):
         cohort["aplasia_case"] = cohort.progress_apply(lambda x: self.split_aplasia_cases(x, target_cohort=cohort), axis=1)
 
         cohort = cohort[cohort["aplasia_case"].isin([1, 2])]
-        cohort["aplasia_case"] = cohort["aplasia_case"].replace({1: 0, 2: 1}).astype(int)
-
-        self.save_cohort(cohort)
-        return cohort
-
-    def save_cohort(self, cohort: pd.DataFrame) -> None:
-        """Save final cohort and report summary stats."""
-        
-        cohort = cohort.rename(columns={'aplasia_case': 'label'})
+        cohort["label"] = cohort["aplasia_case"].replace({1: 0, 2: 1}).astype(int)
         cohort = cohort.drop(columns=[
-            'hospital_expire_flag', 'chemo', 'current_aplasia',
-            'next_aplasia', 'next_aplasia_time', 'transfusion', 'transfusion_date',
+            "aplasia_case", "hospital_expire_flag", "chemo", "current_aplasia",
+            "next_aplasia", "next_aplasia_time", "transfusion", "transfusion_date",
         ])
 
-        pct = 100 * cohort["label"].mean()
-        logger.info("Number of admissions in Aplasia cohort: %s", cohort.hadm_id.nunique())
-        logger.info("Number of patients in Aplasia cohort: %s", cohort.subject_id.nunique())
-        logger.info("Number of admissions with Aplasia: %s", cohort[cohort["label"] == 1].hadm_id.nunique())
-        logger.info("Aplasia positive in %d days: %.2f%%", self.config.follow_up_days, pct)
-
-        cohort.to_csv(self.paths["cohort_path"] / "cohort_aplasia.csv", index=False)
-        logger.info("Aplasia cohort saved.")
+        self.save_cohort(cohort, "aplasia")
+        return cohort

@@ -23,20 +23,19 @@ class ProstateCancerConfig:
 
 
 class ProstateCancerExtractor(BaseExtractor):
+    COHORT_COLUMNS = [
+        "subject_id", "hadm_id", "admittime", "dischtime",
+        "race", "los", "gender", "age", "dod", "label",
+    ]
+
+
+
     def __init__(self, args, config: ProstateCancerConfig = ProstateCancerConfig()):
         super().__init__(args)
         self.config = config
 
 
 
-    def prepare_stays(self) -> pd.DataFrame:
-        adms = self.adms.copy()
-        adms["is_age_eligible"] = (adms["age"] >= self.config.age_min) & (adms["age"] <= self.config.age_max)
-        adms["is_male"] = adms["gender"].eq("M")
-
-
-        return adms
-    
     def add_diagnosis_labels(self, adms: pd.DataFrame) -> pd.DataFrame:
         diags = self.diags.copy()
         diags["icd_code"] = diags["icd_code"].astype(str).str.replace(".", "", regex=False)
@@ -74,7 +73,9 @@ class ProstateCancerExtractor(BaseExtractor):
     def extract_cohort(self) -> None:
         logger.info("Extracting prostate cancer cohort")
 
-        adms = self.prepare_stays()
+        adms = self.adms.copy()
+        adms["is_age_eligible"] = (adms["age"] >= self.config.age_min) & (adms["age"] <= self.config.age_max)
+        adms["is_male"] = adms["gender"].eq("M")
         adms = self.add_diagnosis_labels(adms)
 
 
@@ -83,7 +84,7 @@ class ProstateCancerExtractor(BaseExtractor):
         cohort = cohort.sort_values(["subject_id", "admittime"])
         cohort["is_first_pc_hadm"]= (cohort.groupby("subject_id")["admittime"].transform("min") == cohort["admittime"])
         cohort["is_first_bph_hadm"]= (cohort.groupby("subject_id")["admittime"].transform("min") == cohort["admittime"])
-        print(cohort.subject_id.nunique())
+        logger.info("Subjects after first-admission filter: %s", cohort.subject_id.nunique())
         
         cohort = cohort[cohort["is_first_pc_hadm"] | cohort["is_first_bph_hadm"]]
         cohort = cohort[cohort["is_age_eligible"] & cohort["is_male"]]  
@@ -98,20 +99,4 @@ class ProstateCancerExtractor(BaseExtractor):
             cohort.loc[cohort["label"] == 0, "subject_id"].nunique(),
         )
 
-        self.save_cohort(cohort, self.paths, "prostate_cancer")
-        
-    def save_cohort(self, cohort: pd.DataFrame, paths: dict, cohort_name: str) -> None:
-        
-        logger = get_logger("")
-        
-        cols = ["subject_id", "hadm_id", "admittime", "dischtime", "deathtime", "race", "gender", "age", "label"]
-        cohort = cohort[cols]
-
-        pct = 100 * cohort["label"].mean()
-        logger.info("Number of admissions in cohort: %s", cohort.hadm_id.nunique())
-        logger.info("Number of patients in cohort: %s", cohort.subject_id.nunique())
-        logger.info("Number of %s incidents: %s", cohort_name, cohort[cohort["label"] == 1].hadm_id.nunique())
-        logger.info("%s positive rate: %.2f%%", cohort_name, pct)
-
-        cohort.to_csv(paths["cohort_path"] / f"cohort_{cohort_name}.csv", index=False)
-        logger.info(f"{cohort_name} cohort saved.")
+        self.save_cohort(cohort, "prostate_cancer")

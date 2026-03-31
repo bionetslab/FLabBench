@@ -30,6 +30,11 @@ class NeutropenicFeverConfig:
 
 
 class NeutropenicFeverExtractor(BaseExtractor):
+    COHORT_COLUMNS = [
+        "subject_id", "hadm_id", "admittime", "dischtime",
+        "race", "los", "gender", "age", "dod", "label",
+    ]
+
     def __init__(self, args, config: NeutropenicFeverConfig = NeutropenicFeverConfig()):
         super().__init__(args)
         self.config = config
@@ -93,29 +98,15 @@ class NeutropenicFeverExtractor(BaseExtractor):
     def extract_cohort(self):
         """Run neutropenic fever cohort extraction."""
         cohort = self.build_cancer_chemo_cohort()
-
-        logger.info("Extracting NF cohort...")
+        
         cohort = self.add_nf_flags(cohort)
         cohort["NF_case"] = cohort.progress_apply(
             lambda x: self.split_neutropenic_fever_cases(x, cohort), axis=1,
         )
 
         cohort = cohort[cohort["NF_case"].isin([1, 2])]
-        cohort["NF_case"] = cohort["NF_case"].replace({1: 0, 2: 1}).astype(int)
+        cohort["label"] = cohort["NF_case"].replace({1: 0, 2: 1}).astype(int)
+        cohort = cohort.drop(columns=["NF_case", "hospital_expire_flag", "chemo", "fever", "neutropenia", "NF"])
 
-        self.save_cohort(cohort)
+        self.save_cohort(cohort, "neutropenic_fever")
         return cohort
-
-    def save_cohort(self, cohort: pd.DataFrame) -> None:
-        """Save final cohort and report summary stats."""
-        cohort = cohort.rename(columns={'NF_case': 'label'})
-        cohort = cohort.drop(columns=['hospital_expire_flag', 'chemo', 'fever', 'neutropenia', 'NF'])
-
-        pct = 100 * cohort["label"].mean()
-        logger.info("Number of admissions in NF cohort: %s", cohort.hadm_id.nunique())
-        logger.info("Number of patients in NF cohort: %s", cohort.subject_id.nunique())
-        logger.info("Number of admissions with NF: %s", cohort[cohort["label"] == 1].hadm_id.nunique())
-        logger.info("Neutropenic fever positive in %d days: %.2f%%", self.config.follow_up_days, pct)
-
-        cohort.to_csv(self.paths["cohort_path"] / "cohort_neutropenic_fever.csv", index=False)
-        logger.info("Neutropenic fever cohort saved.")

@@ -1,102 +1,31 @@
+import importlib
 from flab_cohorts.extractors.base import BaseExtractor
-from flab_cohorts.extractors.LIT.aplasia import AplasiaExtractor
-from flab_cohorts.extractors.LIT.neutropenic_fever import NeutropenicFeverExtractor
-from flab_cohorts.extractors.LIT.acute_kidney_injury import AcuteKidneyInjuryExtractor
-from flab_cohorts.extractors.LIT.gastrointestinal_bleeding import GastrointestinalBleedingExtractor
-from flab_cohorts.extractors.LIT.ulcer import PressureUlcerExtractor
-from flab_cohorts.extractors.LIT.alcoholic_cirrhosis_mortality import AlcoholicCirrhosisExtractor
-from flab_cohorts.extractors.LIT.heart_failure_atrial_fibrillation_mortality import HFAndAFExtractor
-from flab_cohorts.extractors.LIT.bone_tumor_mortality import BoneTumorExtractor
-from flab_cohorts.extractors.LIT.immunocompromised_mortality import ImmunocompromisedExtractor
-from flab_cohorts.extractors.LIT.liver_cirrhosis_mortality import LiverCirrhosisExtractor
-from flab_cohorts.extractors.LIT.myocardial_infarction_mortality import MyocardialInfarctionExtractor
-from flab_cohorts.extractors.LIT.obesity_pneumonia_mortality import ObesityPneumoniaExtractor
-from flab_cohorts.extractors.LIT.pneumonia_mortality import PneumoniaExtractor
-from flab_cohorts.extractors.LIT.prostate_cancer import ProstateCancerExtractor
-from flab_cohorts.extractors.LIT.urinary_tract_infection_mortality import UrinaryTractInfectionExtractor
-from flab_cohorts.extractors.LIT.atrial_fibrillation_mortality import AtrialFibrillationExtractor
+from flab_cohorts.extractors.LIT import REGISTRY
 from flab_cohorts.utils.logger import get_logger
 
-#TODO: Make cohort names consistent
 logger = get_logger("LIT_EXTRACTOR")
+
 
 class LITExtractor(BaseExtractor):
     def __init__(self, args):
         super().__init__(args)
-        
+
     def extract_full_cohort(self, cohort: str):
         if cohort == "all":
-            cohort_keys = [
-                "aplasia",
-                "neutropenic_fever",
-                "acute_kidney_injury",
-                "gi_bleeding",
-                "ulcer",
-                "ac_mortality",
-                "hf_and_af_mortality",
-                "bt_mortality",
-                "immune_mortality",
-                "lc_mortality",
-                "mi_mortality",
-                "obesity_pneumonia",
-                "pneumonia_mortality",
-                "prostate_cancer",
-                "ut_infection_mortality",
-                "af_mortality",
-            ]
             results = {}
-            for cohort_key in cohort_keys:
-                logger.info("Extracting cohort: %s", cohort_key)
-                results[cohort_key] = self.extract_full_cohort(cohort_key)
-                logger.info("Done: %s", cohort_key)
+            for key in REGISTRY:
+                logger.info("Extracting cohort: %s", key)
+                results[key] = self.extract_full_cohort(key)
+                logger.info("Done: %s", key)
             return results
-        
-        if cohort == "aplasia":
-            return AplasiaExtractor(self.args).extract_cohort()
-        
-        
-        elif cohort == "neutropenic_fever":
-            return NeutropenicFeverExtractor(self.args).extract_cohort()
-        
-        
-        elif cohort == "acute_kidney_injury":
-            return AcuteKidneyInjuryExtractor(self.args).extract_cohort()
 
-        elif cohort == "gi_bleeding":
-            return GastrointestinalBleedingExtractor(self.args).extract_cohort()
+        if cohort not in REGISTRY:
+            raise ValueError(
+                f"Unknown LIT cohort: {cohort!r}. "
+                f"Available: {sorted(REGISTRY)}"
+            )
 
-        elif cohort == "ulcer":
-            return PressureUlcerExtractor(self.args).extract_cohort()
-        
-        elif cohort == "ac_mortality":
-            return AlcoholicCirrhosisExtractor(self.args).extract_cohort()
-        
-        elif cohort == "hf_and_af_mortality":
-            return HFAndAFExtractor(self.args).extract_cohort()
-        
-        elif cohort == "bt_mortality":
-            return BoneTumorExtractor(self.args).extract_cohort()
-
-        elif cohort == "immune_mortality":
-            return ImmunocompromisedExtractor(self.args).extract_cohort()
-        
-        elif cohort == "lc_mortality":
-            return LiverCirrhosisExtractor(self.args).extract_cohort()
-        
-        elif cohort == "mi_mortality":
-            return MyocardialInfarctionExtractor(self.args).extract_cohort()
-        
-        elif cohort == "obesity_pneumonia":
-            return ObesityPneumoniaExtractor(self.args).extract_cohort()
-
-        elif cohort == "pneumonia_mortality":
-            return PneumoniaExtractor(self.args).extract_cohort()
-        
-        elif cohort == "prostate_cancer":
-            return ProstateCancerExtractor(self.args).extract_cohort()
-        
-        elif cohort == "ut_infection_mortality":
-            return UrinaryTractInfectionExtractor(self.args).extract_cohort()
-        
-        elif cohort == "af_mortality":
-            return AtrialFibrillationExtractor(self.args).extract_cohort()
+        module_path, class_name = REGISTRY[cohort]
+        module = importlib.import_module(module_path)
+        extractor_cls = getattr(module, class_name)
+        return extractor_cls(self.args).extract_cohort()

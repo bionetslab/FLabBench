@@ -2,7 +2,6 @@ from pathlib import Path
 import pandas as pd
 
 from flab_cohorts.utils.dataset_loader import *
-from flab_cohorts.utils.logger import get_logger
 
 
 def extract_diag_pts(data_path: Path, icd_code: str) -> pd.DataFrame:
@@ -10,6 +9,7 @@ def extract_diag_pts(data_path: Path, icd_code: str) -> pd.DataFrame:
     diag = load_diagnoses(data_path)
     diag = diag.loc[diag["icd_code"].str.startswith(icd_code, na=False)]
     return diag
+
 
 def extract_procedure_pts(data_path: Path, icd_codes: list) -> pd.DataFrame:
     if isinstance(icd_codes, str): icd_codes = [icd_codes]
@@ -21,35 +21,19 @@ def extract_procedure_pts(data_path: Path, icd_codes: list) -> pd.DataFrame:
 def find_itemid_by_label(data_path: Path, label: str) -> list:
     lab_item_labels = load_d_labitems_labels(data_path)
     lab_item_labels["label"] = lab_item_labels["label"].str.lower()
-    ids = lab_item_labels[lab_item_labels["label"] == label]['itemid']
+    ids = lab_item_labels[lab_item_labels["label"] == label]["itemid"]
     return ids.tolist()
 
+
 def extract_chemo_cohort(df: pd.DataFrame, data_path: Path):
-
+    
     proc_codes = load_chemo_procedure_codes(data_path)
-    chemo_pts= extract_procedure_pts(data_path,proc_codes) # chemo based on procedure codes
-    df['chemo'] = df['hadm_id'].isin(chemo_pts['hadm_id']).astype(int)
+    chemo_pts = extract_procedure_pts(data_path, proc_codes)
+    df["chemo"] = df["hadm_id"].isin(chemo_pts["hadm_id"]).astype(int)
 
-    icd_code = 'Z5111'
-    chemo_pts= extract_diag_pts(data_path, icd_code) #chemo based on diagnosis codes
-    df['chemo'] = df['chemo'] |df['hadm_id'].isin(chemo_pts['hadm_id']).astype(int)
-
+    icd_code = "Z5111"
+    chemo_pts = extract_diag_pts(data_path, icd_code)
+    df["chemo"] = df["chemo"] | df["hadm_id"].isin(chemo_pts["hadm_id"]).astype(int)
 
     chemo_df = df[df["subject_id"].isin(set(df[df["chemo"] == 1]["subject_id"]))]
     return chemo_df
-
-def save_cohort(cohort: pd.DataFrame, paths: dict, cohort_name: str) -> None:
-    
-    logger = get_logger("")
-    
-    cols = ["subject_id", "hadm_id", "stay_id", "intime", "outtime", "race", "los", "gender", "age", "dod", "label"]
-    cohort = cohort[cols]
-
-    pct = 100 * cohort["label"].mean()
-    logger.info("Number of ICU stays in cohort: %s", cohort.stay_id.nunique())
-    logger.info("Number of patients in cohort: %s", cohort.subject_id.nunique())
-    logger.info("Number of %s deaths: %s", cohort_name, cohort[cohort["label"] == 1].stay_id.nunique())
-    logger.info("%s positive rate: %.2f%%", cohort_name, pct)
-
-    cohort.to_csv(paths["cohort_path"] / f"cohort_{cohort_name}.csv", index=False)
-    logger.info(f"{cohort_name} cohort saved.")
