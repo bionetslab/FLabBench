@@ -1,6 +1,6 @@
 """
 This class extracts a NOAF (new-onset atrial fibrillation) prediction cohort from MIMIC-IV.
-Reference: Interpretable machine learning model for new-onset atrial fibrillation prediction in critically ill patients.
+Reference: https://link.springer.com/article/10.1186/s13054-024-05138-0
 """
 
 import re
