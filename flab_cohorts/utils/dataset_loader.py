@@ -67,8 +67,9 @@ def load_d_labitems_labels(data_path: Path) -> pd.DataFrame:
 
 def find_itemid_by_label(data_path: Path, label: str) -> list:
     lab_items = load_d_labitems_labels(data_path)
-    lab_items["label"] = lab_items["label"].str.lower()
-    return lab_items[lab_items["label"] == label]["itemid"].tolist()
+    label_lower = lab_items["label"].fillna("").str.lower()
+    mask = label_lower.str.contains(label.lower(), na=False)
+    return lab_items.loc[mask, "itemid"].dropna().astype(int).unique().tolist()
 
 
 def load_labevents_for_cohort(data_path: Path, cohort: pd.DataFrame, usecols=None, chunksize=10000000):

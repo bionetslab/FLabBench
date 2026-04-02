@@ -23,4 +23,5 @@ REGISTRY = {
     "prostate_cancer":      (f"{_LIT}.prostate_cancer",                           "ProstateCancerExtractor"),
     "uti":                  (f"{_LIT}.urinary_tract_infection_mortality",          "UrinaryTractInfectionExtractor"),
     "af":                   (f"{_LIT}.atrial_fibrillation_mortality",             "AtrialFibrillationExtractor"),
+    "thrombosis":           (f"{_LIT}.thrombosis",                                "ThrombosisExtractor"),
 }
