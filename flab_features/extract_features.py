@@ -10,21 +10,8 @@ import argparse
 from pathlib import Path
 import pandas as pd
 from config.constants import get_data_path
-from flab_cohorts.utils.io import set_all_paths
+from io_utils import set_all_paths
 from flab_features.feature_extractor import FeatureExtractor
-
-
-def _resolve_cohort_csvs(cohort_path: Path, cohort: str):
-    if cohort == "all":
-        return list(cohort_path.glob("cohort_*.csv")) + list(cohort_path.glob("cohort_*.csv.gz"))
-    for suffix in [".csv", ".csv.gz"]:
-        p = cohort_path / f"cohort_{cohort}{suffix}"
-        if p.exists():
-            return [p]
-    raise FileNotFoundError(
-        f"Cohort file not found: {cohort_path / f'cohort_{cohort}.csv'}\n"
-        "Run cohort extraction first."
-    )
 
 
 def main():
@@ -39,14 +26,17 @@ def main():
                         help="Override MIMIC root path. Default: from MIMIC_IV_PATH env.")
     parser.add_argument("--days", type=int, default=14,
                         help="Days before discharge to extract labs. Default: 14.")
-    parser.add_argument("--feature-threshold", action="store_true", default=True,
+    parser.add_argument("--feature-threshold", action=argparse.BooleanOptionalAction, default=True,
                         help="Filter to top features before saving.")
     args = parser.parse_args()
 
     mimic_dir = Path(args.data_path) if args.data_path else get_data_path(args.dataset)
     paths = set_all_paths(args, out=False)
 
-    cohort_files = _resolve_cohort_csvs(paths["cohort_path"], args.cohort)
+    if args.cohort == "all":
+        cohort_files = list(paths["cohort_path"].glob("cohort_*.csv.gz"))
+    else:
+        cohort_files = [paths["cohort_path"] / f"cohort_{args.cohort}.csv.gz"]
 
     extractor = FeatureExtractor(
         mimic_dir=mimic_dir,
@@ -56,8 +46,8 @@ def main():
     )
 
     for cohort_file in cohort_files:
-        cohort_df = pd.read_csv(cohort_file)
-        cohort_name = cohort_file.stem.removeprefix("cohort_").removesuffix(".csv")
+        cohort_df = pd.read_csv(cohort_file, compression="gzip")
+        cohort_name = cohort_file.name.removeprefix("cohort_").removesuffix(".csv.gz")
         print(f"\n--- Extracting features for: {cohort_name} ---")
         extractor.extract(cohort_df, cohort_name)
         print(f"Saved to {paths['features_path'] / cohort_name}/")

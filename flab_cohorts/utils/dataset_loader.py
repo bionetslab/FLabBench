@@ -4,6 +4,9 @@ from config.constants import PROJECT_ROOT
 from tqdm import tqdm
 
 
+# Load MIMIC-IV raw data
+
+
 def load_admissions(data_path: Path) -> pd.DataFrame:
     p = data_path / "hosp" / "admissions.csv.gz"
     if not p.exists():
@@ -151,3 +154,14 @@ def load_icu_inputevents(data_path: Path) -> pd.DataFrame:
         raise FileNotFoundError(f"inputevents.csv.gz not found under {data_path}/icu/")
     df = pd.read_csv(p, compression="gzip", header=0, parse_dates=["starttime"])
     return df
+
+
+
+# Load DTB edges
+
+def load_dtb_edges(edges_path):
+    from pathlib import Path
+    import pandas as pd
+    if not Path(edges_path).exists():
+        raise FileNotFoundError(f"DTB edges file not found at {edges_path}")
+    return pd.read_csv(edges_path, sep="	")

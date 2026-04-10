@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Optional, Union
 from config.constants import DTB_DATA_PATH
 from flab_cohorts.extractors.base import BaseExtractor
-from flab_cohorts.utils.io import load_dtb_edges
+from flab_cohorts.utils.dataset_loader import load_dtb_edges
 from tqdm import tqdm
 
 
@@ -119,7 +119,7 @@ class DTBExtractor(BaseExtractor):
     
     def save_edge_cohort(self, cohort: pd.DataFrame, D1: str, D2: str, W: float):
         cohort = cohort.rename(columns={"target_D2_5y": "label"})
-        cohort.to_csv(self.paths["cohort_path"] / f"cohort_{D1}_{D2}_{W}.csv.gz", index=False)
+        cohort.to_csv(self.paths["cohort_path"] / f"cohort_{D1}-{D2}.csv.gz", index=False, compression="gzip")
     
     def extract_full_cohort(self, cohort: str) -> pd.DataFrame:
         self.sel_edges = self.select_edges(cohort)

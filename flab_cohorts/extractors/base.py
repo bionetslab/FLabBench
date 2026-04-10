@@ -2,7 +2,7 @@ from pathlib import Path
 import pandas as pd
 
 from flab_cohorts.utils.dataset_loader import load_admissions, load_diagnoses, load_icu_stays, load_patients
-from flab_cohorts.utils.io import set_all_paths
+from io_utils import set_all_paths
 from config.constants import get_data_path
 from flab_cohorts.utils.logger import get_logger
 
@@ -76,7 +76,7 @@ class BaseExtractor:
             cohort.loc[cohort["label"] == 1, id_col].nunique(),
             pct,
         )
-        cohort.to_csv(self.paths["cohort_path"] / f"cohort_{cohort_name}.csv", index=False)
+        cohort.to_csv(self.paths["cohort_path"] / f"cohort_{cohort_name}.csv.gz", compression="gzip", index=False)
 
 
 class ICUBaseExtractor(BaseExtractor):
