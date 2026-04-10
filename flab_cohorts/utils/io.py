@@ -1,7 +1,7 @@
 from pathlib import Path
 import pandas as pd
 import os
-from flab_cohorts.config.constants import PROJECT_ROOT
+from config.constants import PROJECT_ROOT
 from tqdm import tqdm
 
 

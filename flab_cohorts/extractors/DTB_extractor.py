@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 from typing import Optional, Union
-from flab_cohorts.config.constants import DTB_DATA_PATH
+from config.constants import DTB_DATA_PATH
 from flab_cohorts.extractors.base import BaseExtractor
 from flab_cohorts.utils.io import load_dtb_edges
 from tqdm import tqdm

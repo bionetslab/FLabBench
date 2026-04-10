@@ -3,7 +3,7 @@ import pandas as pd
 
 from flab_cohorts.utils.dataset_loader import load_admissions, load_diagnoses, load_icu_stays, load_patients
 from flab_cohorts.utils.io import set_all_paths
-from flab_cohorts.config.constants import get_data_path
+from config.constants import get_data_path
 from flab_cohorts.utils.logger import get_logger
 
 logger = get_logger("EXTRACTOR")
@@ -27,7 +27,7 @@ class BaseExtractor:
             if getattr(args, "data_path", None)
             else get_data_path(getattr(args, "dataset", "MIMIC_IV"))
         )
-        self.paths = set_all_paths(args)
+        self.paths = set_all_paths(args, out=False)
         self._load_mimic(self.data_path)
 
     def _load_mimic(self, path: Path):
