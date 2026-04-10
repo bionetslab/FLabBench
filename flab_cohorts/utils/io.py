@@ -13,31 +13,30 @@ def load_dtb_edges(edges_path: Path) -> pd.DataFrame:
 
 
 
+def get_output_dir(args):
+    output_dir = Path(PROJECT_ROOT) / "data" / args.dataset / "results" / args.cohort / "time_series" / args.train_mode / args.model_type / args.prefix / f"fold_{args.fold}" / f"grid_{args.grid}"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    return output_dir
+
+
 def set_all_paths(args, out=True):
     dataset = args.dataset
     cohort = getattr(args, "cohort", "")
-    extractor = args.extractor
-
+    extractor = getattr(args, "extractor", "")
 
     saved_data_path = Path(PROJECT_ROOT) / "data" / dataset
 
-    feature_path = saved_data_path / "top_features" # / cohort
-
-    #CV_folds_path = saved_data_path / extractor / "folds" / cohort
-    
-    cohort_path = saved_data_path / "cohorts"/ extractor
-    
-
-    # save this as dict
     path_dict = {
         "saved_data_path": saved_data_path,
-        #"CV_folds_path": CV_folds_path,
-        "feature_path": feature_path,
-        "cohort_path": cohort_path,
+        "cohort_path":     saved_data_path / "cohorts" / extractor,
+        "features_path":   saved_data_path / "features",
+        "folds_path":      saved_data_path / "folds"    / cohort,
     }
-    
+
+    if out:
+        path_dict["output_path"] = get_output_dir(args)
+
     for p in path_dict.values():
         Path(p).mkdir(parents=True, exist_ok=True)
-        
 
     return path_dict
