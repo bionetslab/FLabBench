@@ -9,7 +9,7 @@ Examples:
 import argparse
 from pathlib import Path
 import pandas as pd
-from flab_cohorts.config.constants import get_data_path
+from config.constants import get_data_path
 from flab_cohorts.utils.io import set_all_paths
 from flab_features.feature_extractor import FeatureExtractor
 
@@ -39,8 +39,8 @@ def main():
                         help="Override MIMIC root path. Default: from MIMIC_IV_PATH env.")
     parser.add_argument("--days", type=int, default=14,
                         help="Days before discharge to extract labs. Default: 14.")
-    parser.add_argument("--agg-interval", type=int, default=24,
-                        help="Aggregation interval in hours for bin index. Default: 24.")
+    parser.add_argument("--feature-threshold", action="store_true", default=True,
+                        help="Filter to top features before saving.")
     args = parser.parse_args()
 
     mimic_dir = Path(args.data_path) if args.data_path else get_data_path(args.dataset)
@@ -51,8 +51,8 @@ def main():
     extractor = FeatureExtractor(
         mimic_dir=mimic_dir,
         features_base_path=paths["features_path"],
+        top_features_path=paths["top_features_path"] if args.feature_threshold else None,
         days_before_discharge=args.days,
-        agg_interval=args.agg_interval,
     )
 
     for cohort_file in cohort_files:

@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import pickle
 from pathlib import Path
 from tqdm import tqdm
 
@@ -7,12 +8,15 @@ from tqdm import tqdm
 ITEMIDS_TO_REMOVE = [50934, 50947, 51678]
 
 class FeatureExtractor:
-    def __init__(self, mimic_dir, output_dir, days_before_discharge=14, agg_interval=24):
-        self.mimic_dir = Path(mimic_dir) 
-        self.output_dir = Path(output_dir)
+    def __init__(self, mimic_dir, features_base_path, top_features_path=None, days_before_discharge=14):
+        self.mimic_dir = Path(mimic_dir)
+        self.output_dir = Path(features_base_path)
         self.days = days_before_discharge
-        self.agg_interval = agg_interval
-        self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.top_features = None
+        if top_features_path is not None:
+            with open(Path(top_features_path) / "mimic_top100_features.pkl", "rb") as f:
+                self.top_features = set(int(x) for x in pickle.load(f))
+            print(f"Top features filter applied: {len(self.top_features)} itemids")
 
     def extract(self, cohort_df, cohort_name):
         cohort_df = cohort_df.copy()
@@ -35,8 +39,10 @@ class FeatureExtractor:
             chunksize=1_000_000,
         )):
             chunk = chunk.dropna(subset=["valuenum"])
-            chunk = chunk[~chunk["itemid"].isin(ITEMIDS_TO_REMOVE)]
             chunk = chunk[chunk["subject_id"].isin(subject_ids)]
+            chunk = chunk[~chunk["itemid"].isin(ITEMIDS_TO_REMOVE)]
+            if self.top_features is not None:
+                chunk = chunk[chunk["itemid"].isin(self.top_features)]
             if chunk.empty:
                 continue
             sub = chunk.merge(
@@ -59,22 +65,10 @@ class FeatureExtractor:
         labs = pd.concat(collected, ignore_index=True)
 
         labs["minute"] = (labs["charttime"] - labs["starttime"]).dt.total_seconds() / 60
-        labs["bin"] = (labs["minute"] // (60 * self.agg_interval)).astype(int)
-        labs = labs[labs["bin"] >= 0]
+        labs = labs[labs["minute"] >= 0]
         labs = labs.rename(columns={"valuenum": "value"})
 
-        labs[["subject_id", "hadm_id", "itemid", "value", "minute", "bin"]].to_csv(
-            self.output_dir / f"{cohort_name}_features.csv.gz",
-            compression="gzip",
-            index=False,
-        )
+        out_dir = self.output_dir / cohort_name
+        out_dir.mkdir(parents=True, exist_ok=True)
 
-        cohort_df[["hadm_id", "label"]].drop_duplicates("hadm_id").to_csv(
-            self.output_dir / f"{cohort_name}_labels.csv",
-            index=False,
-        )
-
-        cohort_df[["hadm_id", "age", "gender"]].drop_duplicates("hadm_id").to_csv(
-            self.output_dir / f"{cohort_name}_demo.csv",
-            index=False,
-        )
+        labs[["subject_id", "hadm_id", "itemid", "value", "minute"]].to_csv(out_dir / "features.csv.gz",compression="gzip",index=False)
