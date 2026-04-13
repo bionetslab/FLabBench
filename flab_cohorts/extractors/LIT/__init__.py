@@ -24,4 +24,6 @@ REGISTRY = {
     "uti":                  (f"{_LIT}.urinary_tract_infection_mortality",          "UrinaryTractInfectionExtractor"),
     "af":                   (f"{_LIT}.atrial_fibrillation",                       "AtrialFibrillationExtractor"),
     "thrombosis":           (f"{_LIT}.thrombosis",                                "ThrombosisExtractor"),
+    "vap":                  (f"{_LIT}.vap",                                       "VAPExtractor"),
+    "mimic_all":            (f"{_LIT}.mimic_all",                                  "MimicAllExtractor"),
 }
