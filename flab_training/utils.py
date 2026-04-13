@@ -7,18 +7,32 @@ import torch
 import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
 from pathlib import Path
-from sklearn.model_selection import StratifiedKFold, train_test_split
+from sklearn.model_selection import StratifiedKFold, train_test_split, GroupShuffleSplit
 from transformers import set_seed as transformers_set_seed
 from config.constants import PROJECT_ROOT, RANDOM_SEED
 
 # Generating CV folds
 
-def generate_folds(cohort_name, paths, num_folds=5, seed=None):
+def generate_folds(cohort_name, paths, num_folds=5, seed=None, pretrain=False):
 
     save_path = paths["folds_path"] / f"seed_{seed}" if seed is not None else paths["folds_path"]
     effective_seed = seed if seed is not None else RANDOM_SEED
 
-    cohort = pd.read_csv(paths["cohort_path"] / f"cohort_{cohort_name}.csv.gz",compression="gzip",usecols=["subject_id", "hadm_id", "label"],)
+    cohort = pd.read_csv(paths["cohort_path"] / f"cohort_{cohort_name}.csv.gz", compression="gzip", usecols=["subject_id", "hadm_id", "label"])
+    os.makedirs(save_path, exist_ok=True)
+
+    if pretrain:
+        subject_ids = cohort[["subject_id", "hadm_id"]].drop_duplicates()
+        groups = subject_ids["subject_id"].values
+        gss = GroupShuffleSplit(n_splits=1, train_size=0.8, random_state=effective_seed)
+        train_idx, val_idx = next(gss.split(subject_ids, groups=groups))
+        train_hadms = subject_ids.iloc[train_idx][["subject_id", "hadm_id"]].values
+        val_hadms   = subject_ids.iloc[val_idx][["subject_id", "hadm_id"]].values
+        test_hadms  = np.empty((0, 2), dtype=int)
+        with open(save_path / "fold_0.pkl", "wb") as f:
+            pickle.dump([train_hadms, val_hadms, test_hadms], f)
+        print("Pretrain fold saved!")
+        return train_hadms, val_hadms, test_hadms
 
     subject_labels = cohort.groupby("subject_id")["label"].max().reset_index()
 
@@ -36,7 +50,6 @@ def generate_folds(cohort_name, paths, num_folds=5, seed=None):
         val_hadms   = np.array(cohort.loc[cohort["subject_id"].isin(val["subject_id"]),   ["subject_id", "hadm_id"]])
         test_hadms  = np.array(cohort.loc[cohort["subject_id"].isin(test["subject_id"]),  ["subject_id", "hadm_id"]])
 
-        os.makedirs(save_path, exist_ok=True)
         with open(save_path / f"fold_{fold}.pkl", "wb") as f:
             pickle.dump([train_hadms, val_hadms, test_hadms], f)
 
