@@ -1,0 +1,24 @@
+global:
+  seed: 42
+  train_batch_size: 32
+  eval_batch_size: 64
+  print_train_loss_every: 1000
+  max_epochs: 200
+  validate_every: null
+  patience: 10
+  criterion: "loss"
+  gradient_accumulation_steps: 1
+  grad_clip: 1.0
+  weight_decay: 1e-4
+  loss_fn: "bce"
+  calibrate_threshold: 0
+  window_forecast: 10080
+  window_pred: 1440
+    
+grud:
+  grid_search:
+    max_timesteps: [1000]
+    hid_dim: [64]
+    dropout: [0.2, 0.3]
+    lr: [1e-4]
+    pos_class_weight: [0, 1]

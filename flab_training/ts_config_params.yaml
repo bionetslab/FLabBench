@@ -1,0 +1,103 @@
+global:
+  seed: 42
+  train_batch_size: 32
+  eval_batch_size: 64
+  print_train_loss_every: 1000
+  max_epochs: 200
+  validate_every: null
+  patience: 10
+  criterion: "loss"
+  gradient_accumulation_steps: 1
+  grad_clip: 1.0
+  weight_decay: 1e-4
+  loss_fn: "bce"
+  calibrate_threshold: 0
+  window_forecast: 10080
+  window_pred: 1440
+
+tcn:
+  grid_search:
+    variant: ["VMD"]
+    hid_dim: [64, 128]
+    num_layers: [4, 6]
+    dropout: [0.2, 0.3]
+    kernel_size: [4]
+    lr: [1e-4, 5e-4]
+    agg: ["mean"]
+    impute: ["fill"]
+    pos_class_weight: [0, 1]
+
+gru:
+  grid_search:
+    variant: ["VMD"]
+    hid_dim: [64, 128]
+    num_layers: [1, 2]
+    dropout: [0.2, 0.3]
+    lr: [1e-4, 5e-4]
+    agg: ["mean"]
+    impute: ["fill"]
+    pos_class_weight: [0, 1]
+
+lstm:
+  grid_search:
+    variant: ["VMD"]
+    hid_dim: [64, 128]
+    num_layers: [1, 2]
+    dropout: [0.2, 0.3]
+    lr: [1e-4, 5e-4]
+    agg: ["mean"]
+    impute: ["fill"]
+    pos_class_weight: [0, 1]
+    
+sand:
+  grid_search:
+    variant: ["VMD"]
+    hid_dim: [64, 128]
+    num_layers: [4]
+    dropout: [0.2, 0.3]
+    num_heads: [2, 4]
+    M: [12]
+    r: [24]
+    lr: [1e-4, 5e-4]
+    agg: ["mean"]
+    impute: ["fill"]
+    pos_class_weight: [0, 1]
+    
+grud:
+  grid_search:
+    max_timesteps: [1000]
+    hid_dim: [64, 128]
+    dropout: [0.2, 0.3]
+    lr: [1e-4, 5e-4]
+    pos_class_weight: [0, 1]
+    
+interpnet:
+  grid_search:
+    max_timesteps: [1000]
+    hid_dim: [64, 128]
+    hours_look_ahead: [48, 120]
+    ref_points: [192]
+    dropout: [0.2, 0.3]
+    lr: [1e-4, 5e-4]
+    pos_class_weight: [0, 1]
+    
+strats:   
+  grid_search:
+    max_obs: [1000]
+    hid_dim: [64, 128]
+    num_layers: [2, 4]
+    num_heads: [8, 16]
+    attention_dropout: [0.2]
+    dropout: [0.2]
+    lr: [5e-4]
+    pos_class_weight: [0, 1]
+
+mlp:
+  grid_search:
+    variant: ["VMD"]
+    hid_dims: [[64], [128], [128, 64], [256, 128]]
+    dropout: [0.2, 0.3]
+    lr: [1e-4, 5e-4]
+    agg: ["mean"]
+    impute: ["fill"]
+    pos_class_weight: [0, 1]

@@ -1,0 +1,358 @@
+global:
+  seed: 42
+  train_batch_size: 32
+  eval_batch_size: 64
+  print_train_loss_every: 1000
+  max_epochs: 200
+  validate_every: null
+  patience: 10
+  criterion: loss
+  gradient_accumulation_steps: 1
+  grad_clip: 1.0
+  weight_decay: 1e-4
+  loss_fn: bce
+  calibrate_threshold: 0
+  window_forecast: 10080
+  window_pred: 1440
+gru:
+  mimic_cohort_aplasia_45_days:
+    variant: VMD
+    hid_dim: 128
+    num_layers: 1
+    dropout: 0.2
+    lr: 0.0005
+    agg: mean
+    impute: fill
+    pos_class_weight: 1
+    mean_epochs: 13.93
+  mimic_cohort_NF_30_days:
+    variant: VMD
+    hid_dim: 128
+    num_layers: 1
+    dropout: 0.3
+    lr: 0.0005
+    agg: mean
+    impute: fill
+    pos_class_weight: 0
+    mean_epochs: 11.8
+  uker_cohort_aplasia_45_days:
+    variant: VMD
+    hid_dim: 128
+    num_layers: 1
+    dropout: 0.3
+    lr: 0.0005
+    agg: mean
+    impute: fill
+    pos_class_weight: 1
+    mean_epochs: 16.93
+  uker_cohort_NF_30_days:
+    variant: VMD
+    hid_dim: 128
+    num_layers: 2
+    dropout: 0.2
+    lr: 0.0005
+    agg: mean
+    impute: fill
+    pos_class_weight: 1
+    mean_epochs: 13
+tcn:
+  mimic_cohort_aplasia_45_days:
+    variant: VMD
+    hid_dim: 64
+    num_layers: 6
+    dropout: 0.2
+    kernel_size: 4
+    lr: 0.0005
+    agg: mean
+    impute: fill
+    pos_class_weight: 1
+    mean_epochs: 13.27
+  mimic_cohort_NF_30_days:
+    variant: VMD
+    hid_dim: 64
+    num_layers: 6
+    dropout: 0.3
+    kernel_size: 4
+    lr: 0.0005
+    agg: mean
+    impute: fill
+    pos_class_weight: 0
+    mean_epochs: 11.13
+  uker_cohort_aplasia_45_days:
+    variant: VMD
+    hid_dim: 64
+    num_layers: 6
+    dropout: 0.2
+    kernel_size: 4
+    lr: 0.0005
+    agg: mean
+    impute: fill
+    pos_class_weight: 0
+    mean_epochs: 14.2
+  uker_cohort_NF_30_days:
+    variant: VMD
+    hid_dim: 128
+    num_layers: 6
+    dropout: 0.3
+    kernel_size: 4
+    lr: 0.0005
+    agg: mean
+    impute: fill
+    pos_class_weight: 1
+    mean_epochs: 11.8
+lstm:
+  mimic_cohort_aplasia_45_days:
+    variant: VMD
+    hid_dim: 128
+    num_layers: 1
+    dropout: 0.3
+    lr: 0.0005
+    agg: mean
+    impute: fill
+    pos_class_weight: 1
+    mean_epochs: 13.13
+  mimic_cohort_NF_30_days:
+    variant: VMD
+    hid_dim: 128
+    num_layers: 1
+    dropout: 0.2
+    lr: 0.0005
+    agg: mean
+    impute: fill
+    pos_class_weight: 0
+    mean_epochs: 11.53
+  uker_cohort_aplasia_45_days:
+    variant: VMD
+    hid_dim: 128
+    num_layers: 1
+    dropout: 0.2
+    lr: 0.0005
+    agg: mean
+    impute: fill
+    pos_class_weight: 1
+    mean_epochs: 13.87
+  uker_cohort_NF_30_days:
+    variant: VMD
+    hid_dim: 128
+    num_layers: 1
+    dropout: 0.3
+    lr: 0.0005
+    agg: mean
+    impute: fill
+    pos_class_weight: 1
+    mean_epochs: 12.2
+sand:
+  mimic_cohort_aplasia_45_days:
+    variant: VMD
+    hid_dim: 64
+    num_layers: 4
+    dropout: 0.2
+    num_heads: 4
+    M: 12
+    r: 24
+    lr: 0.0005
+    agg: mean
+    impute: fill
+    pos_class_weight: 1
+    mean_epochs: 18.73
+  mimic_cohort_NF_30_days:
+    variant: VMD
+    hid_dim: 64
+    num_layers: 4
+    dropout: 0.2
+    num_heads: 4
+    M: 12
+    r: 24
+    lr: 0.0005
+    agg: mean
+    impute: fill
+    pos_class_weight: 1
+    mean_epochs: 13.67
+  uker_cohort_aplasia_45_days:
+    variant: VMD
+    hid_dim: 64
+    num_layers: 4
+    dropout: 0.2
+    num_heads: 4
+    M: 12
+    r: 24
+    lr: 0.0005
+    agg: mean
+    impute: fill
+    pos_class_weight: 0
+    mean_epochs: 21.27
+  uker_cohort_NF_30_days:
+    variant: VMD
+    hid_dim: 64
+    num_layers: 4
+    dropout: 0.2
+    num_heads: 4
+    M: 12
+    r: 24
+    lr: 0.0005
+    agg: mean
+    impute: fill
+    pos_class_weight: 1
+    mean_epochs: 17.73
+grud:
+  mimic_cohort_aplasia_45_days:
+    max_timesteps: 1000
+    hid_dim: 128
+    dropout: 0.3
+    lr: 0.0005
+    pos_class_weight: 1
+    mean_epochs: 22.73
+  mimic_cohort_NF_30_days:
+    max_timesteps: 1000
+    hid_dim: 128
+    dropout: 0.3
+    lr: 0.0001
+    pos_class_weight: 1
+    mean_epochs: 36.47
+  uker_cohort_aplasia_45_days:
+    max_timesteps: 1000
+    hid_dim: 128
+    dropout: 0.3
+    lr: 0.0005
+    pos_class_weight: 0
+    mean_epochs: 22.93
+  uker_cohort_NF_30_days:
+    max_timesteps: 1000
+    hid_dim: 64
+    dropout: 0.3
+    lr: 0.0001
+    pos_class_weight: 0
+    mean_epochs: 66.53
+interpnet:
+  mimic_cohort_aplasia_45_days:
+    max_timesteps: 1000
+    hid_dim: 128
+    hours_look_ahead: 120
+    ref_points: 192
+    dropout: 0.3
+    lr: 0.0001
+    pos_class_weight: 1
+    mean_epochs: 46.6
+  mimic_cohort_NF_30_days:
+    max_timesteps: 1000
+    hid_dim: 64
+    hours_look_ahead: 120
+    ref_points: 192
+    dropout: 0.2
+    lr: 0.0001
+    pos_class_weight: 1
+    mean_epochs: 33.2
+  uker_cohort_aplasia_45_days:
+    max_timesteps: 1000
+    hid_dim: 128
+    hours_look_ahead: 48
+    ref_points: 192
+    dropout: 0.2
+    lr: 0.0001
+    pos_class_weight: 0
+    mean_epochs: 25.07
+  uker_cohort_NF_30_days:
+    max_timesteps: 1000
+    hid_dim: 128
+    hours_look_ahead: 120
+    ref_points: 192
+    dropout: 0.2
+    lr: 0.0001
+    pos_class_weight: 0
+    mean_epochs: 26.93
+strats:
+  mimic_cohort_aplasia_45_days:
+    max_obs: 1000
+    hid_dim: 128
+    num_layers: 2
+    num_heads: 8
+    attention_dropout: 0.2
+    dropout: 0.2
+    lr: 0.0005
+    pos_class_weight: 0
+    mean_epochs: 27.13
+  mimic_all:
+    max_obs: 1000
+    hid_dim: 128
+    num_layers: 2
+    num_heads: 8
+    attention_dropout: 0.2
+    dropout: 0.2
+    lr: 0.0005
+    pos_class_weight: 0
+  mimic_cohort_NF_30_days:
+    max_obs: 1000
+    hid_dim: 64
+    num_layers: 2
+    num_heads: 8
+    attention_dropout: 0.2
+    dropout: 0.2
+    lr: 0.0005
+    pos_class_weight: 0
+    mean_epochs: 25.8
+  uker_cohort_aplasia_45_days:
+    max_obs: 1000
+    hid_dim: 128
+    num_layers: 4
+    num_heads: 16
+    attention_dropout: 0.2
+    dropout: 0.2
+    lr: 0.0005
+    pos_class_weight: 0
+    mean_epochs: 31.47
+  uker_all:
+    max_obs: 1000
+    hid_dim: 128
+    num_layers: 2
+    num_heads: 8
+    attention_dropout: 0.2
+    dropout: 0.2
+    lr: 0.0005
+    pos_class_weight: 0
+  uker_cohort_NF_30_days:
+    max_obs: 1000
+    hid_dim: 64
+    num_layers: 2
+    num_heads: 16
+    attention_dropout: 0.2
+    dropout: 0.2
+    lr: 0.0005
+    pos_class_weight: 0
+    mean_epochs: 24.4
+mlp:
+  mimic_cohort_aplasia_45_days:
+    variant: VMD
+    hid_dims: '[256, 128]'
+    dropout: 0.2
+    lr: 0.0001
+    agg: mean
+    impute: fill
+    pos_class_weight: 0
+    mean_epochs: 13.8
+  mimic_cohort_NF_30_days:
+    variant: VMD
+    hid_dims: '[64]'
+    dropout: 0.2
+    lr: 0.0005
+    agg: mean
+    impute: fill
+    pos_class_weight: 0
+    mean_epochs: 12.73
+  uker_cohort_aplasia_45_days:
+    variant: VMD
+    hid_dims: '[256, 128]'
+    dropout: 0.2
+    lr: 0.0001
+    agg: mean
+    impute: fill
+    pos_class_weight: 0
+    mean_epochs: 15.07
+  uker_cohort_NF_30_days:
+    variant: VMD
+    hid_dims: '[128]'
+    dropout: 0.3
+    lr: 0.0005
+    agg: mean
+    impute: fill
+    pos_class_weight: 0
+    mean_epochs: 12.73

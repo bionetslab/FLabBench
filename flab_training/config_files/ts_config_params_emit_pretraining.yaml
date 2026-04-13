@@ -1,0 +1,81 @@
+global:
+  seed: 42
+  train_batch_size: 256 
+  eval_batch_size: 256
+  print_train_loss_every: 100
+  max_epochs: 100
+  validate_every: null
+  patience: 10
+  criterion: "loss"
+  gradient_accumulation_steps: 1
+  grad_clip: 1.0
+  weight_decay: 0.0 
+  loss_fn: "bce"
+  calibrate_threshold: 0
+  window_forecast: 10080
+  window_pred: 1440      
+  event_mask_threshold: 0.001
+  insignificant_prob: 0.4 
+
+# finetning dropout (0.4), batch size (32), lr (5e-5), and weight_decay (1e-4).
+emit:
+  mimic_all:
+    max_obs: 880
+    hid_dim: 50  
+    num_layers: 2
+    num_heads: 4  
+    attention_dropout: 0.2
+    dropout: 0.2
+    lr: 0.0005
+    pos_class_weight: 0
+    error_coefficient: 8.0 
+  mimic_cohort_aplasia_45_days:
+    max_obs: 880
+    hid_dim: 50
+    num_layers: 2
+    num_heads: 4
+    attention_dropout: 0.2
+    dropout: 0.2
+    lr: 0.0005
+    pos_class_weight: 0
+    error_coefficient: 8.0
+  mimic_cohort_NF_30_days:
+    max_obs: 880
+    hid_dim: 50
+    num_layers: 2
+    num_heads: 4
+    attention_dropout: 0.2
+    dropout: 0.2
+    lr: 0.0005
+    pos_class_weight: 0
+    error_coefficient: 8.0
+  uker_all:
+    max_obs: 880
+    hid_dim: 50
+    num_layers: 2
+    num_heads: 4
+    attention_dropout: 0.2
+    dropout: 0.2
+    lr: 0.0005
+    pos_class_weight: 0
+    error_coefficient: 8.0
+  uker_cohort_aplasia_45_days:
+    max_obs: 880
+    hid_dim: 50
+    num_layers: 2
+    num_heads: 4
+    attention_dropout: 0.2
+    dropout: 0.2
+    lr: 0.0005
+    pos_class_weight: 1
+    error_coefficient: 8.0
+  uker_cohort_NF_30_days:
+    max_obs: 880
+    hid_dim: 50
+    num_layers: 2
+    num_heads: 4
+    attention_dropout: 0.2
+    dropout: 0.2
+    lr: 0.0005
+    pos_class_weight: 0
+    error_coefficient: 8.0
