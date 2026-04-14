@@ -22,6 +22,10 @@ def generate_folds(cohort_name, paths, num_folds=5, seed=None, pretrain=False):
     os.makedirs(save_path, exist_ok=True)
 
     if pretrain:
+        '''features_file = paths["features_path"] / cohort_name / "features.csv.gz"
+        if features_file.exists():
+            hadm_with_labs = pd.read_csv(features_file, usecols=["hadm_id"])["hadm_id"].unique()
+            cohort = cohort[cohort["hadm_id"].isin(hadm_with_labs)]'''
         subject_ids = cohort[["subject_id", "hadm_id"]].drop_duplicates()
         groups = subject_ids["subject_id"].values
         gss = GroupShuffleSplit(n_splits=1, train_size=0.8, random_state=effective_seed)
@@ -68,6 +72,8 @@ def load_fold_file(args):
         fold_file = args.paths["folds_path"] / f"fold_{args.fold}.pkl"
     else:
         fold_file = args.paths["folds_path"] / f"seed_{args.split_seed}" / f"fold_{args.fold}.pkl"
+    if not fold_file.exists():
+        generate_folds(args.cohort, args.paths, seed=args.seed, pretrain=args.train_mode == "pretrain")
     with open(fold_file, "rb") as f:
         train_ids, val_ids, test_ids = pickle.load(f)
     return train_ids[:, 1], val_ids[:, 1], test_ids[:, 1]
