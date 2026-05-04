@@ -15,18 +15,21 @@ from config.constants import PROJECT_ROOT, RANDOM_SEED
 
 def generate_folds(cohort_name, paths, num_folds=5, seed=None, pretrain=False):
 
-    save_path = paths["folds_path"] / f"seed_{seed}" if seed is not None else paths["folds_path"]
     effective_seed = seed if seed is not None else RANDOM_SEED
+    save_path = paths["folds_path"] / f"seed_{effective_seed}"
 
     cohort = pd.read_csv(paths["cohort_path"] / f"cohort_{cohort_name}.csv.gz", compression="gzip", usecols=["subject_id", "hadm_id", "label"])
     os.makedirs(save_path, exist_ok=True)
+    
+    #remove admissions without features
+    features_file = paths["features_path"] / cohort_name / "features.csv.gz"
+    if features_file.exists():
+        hadm_with_labs = pd.read_csv(features_file, usecols=["hadm_id"])["hadm_id"].unique()
+        cohort = cohort[cohort["hadm_id"].isin(hadm_with_labs)]
+            
+    if pretrain or cohort_name == "mimic_all":
 
-    if pretrain:
-        '''features_file = paths["features_path"] / cohort_name / "features.csv.gz"
-        if features_file.exists():
-            hadm_with_labs = pd.read_csv(features_file, usecols=["hadm_id"])["hadm_id"].unique()
-            cohort = cohort[cohort["hadm_id"].isin(hadm_with_labs)]'''
-        subject_ids = cohort[["subject_id", "hadm_id"]].drop_duplicates()
+        subject_ids = cohort[["subject_id", "hadm_id"]].drop_duplicates().sort_values(["subject_id", "hadm_id"]).reset_index(drop=True)
         groups = subject_ids["subject_id"].values
         gss = GroupShuffleSplit(n_splits=1, train_size=0.8, random_state=effective_seed)
         train_idx, val_idx = next(gss.split(subject_ids, groups=groups))
@@ -35,7 +38,6 @@ def generate_folds(cohort_name, paths, num_folds=5, seed=None, pretrain=False):
         test_hadms  = np.empty((0, 2), dtype=int)
         with open(save_path / "fold_0.pkl", "wb") as f:
             pickle.dump([train_hadms, val_hadms, test_hadms], f)
-        print("Pretrain fold saved!")
         return train_hadms, val_hadms, test_hadms
 
     subject_labels = cohort.groupby("subject_id")["label"].max().reset_index()
@@ -68,12 +70,10 @@ def generate_folds(cohort_name, paths, num_folds=5, seed=None, pretrain=False):
     return train_hadms, val_hadms, test_hadms
 
 def load_fold_file(args):
-    if args.split_seed is None:
-        fold_file = args.paths["folds_path"] / f"fold_{args.fold}.pkl"
-    else:
-        fold_file = args.paths["folds_path"] / f"seed_{args.split_seed}" / f"fold_{args.fold}.pkl"
+    effective_seed = args.split_seed if args.split_seed is not None else RANDOM_SEED
+    fold_file = args.paths["folds_path"] / f"seed_{effective_seed}" / f"fold_{args.fold}.pkl"
     if not fold_file.exists():
-        generate_folds(args.cohort, args.paths, seed=args.seed, pretrain=args.train_mode == "pretrain")
+        generate_folds(args.cohort, args.paths, seed=effective_seed, pretrain=args.train_mode == "pretrain")
     with open(fold_file, "rb") as f:
         train_ids, val_ids, test_ids = pickle.load(f)
     return train_ids[:, 1], val_ids[:, 1], test_ids[:, 1]
@@ -124,7 +124,7 @@ def ids_in_data(data, ids, logger=None):
     sup_ts_ids = np.concatenate((train_ids, val_ids, test_ids))
 
     if logger is not None:
-        logger.write(f"\nTotal ids removed (not in data): {len(missing_ids)}")
+        logger.write(f"\nTotal ids removed (not in data): {len(missing_ids)}") #will be zero because we dropped the admissions without features before splitting
         logger.write(f"\n# train, val, test TS FILTERED: {len(train_ids)}, {len(val_ids)}, {len(test_ids)}")
 
     # keep only relevant ids in data
@@ -201,7 +201,7 @@ def fill_impute(values, obs):
     df = pd.DataFrame(values_reshaped)
     # forward/backward will
     df = df.ffill(axis=1).bfill(axis=1)
-    df = df.fillna(0)
+    df = df.fillna(0) # if a variable has no measurement at all fill with zero
     return df.values.reshape(N, V, T).transpose(0, 2, 1)
 
 def fill_mean(values, obs, train_ind):
