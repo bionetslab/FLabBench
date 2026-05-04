@@ -4,7 +4,7 @@ from config.constants import PROJECT_ROOT
 
 
 def get_output_dir(args):
-    output_dir = Path(PROJECT_ROOT) / "saved_data" / "results" / args.cohort / "time_series" / args.train_mode / args.model_type / args.prefix / f"fold_{args.fold}" / f"grid_{args.grid}"
+    output_dir = Path(PROJECT_ROOT) / "saved_data" / "dicts" / args.cohort / args.model_type / args.prefix / f"fold_{args.fold}" / f"agg_int_{args.agg_int}"/ f"impute_{args.impute}"/ f"variant_{args.variant}"
     output_dir.mkdir(parents=True, exist_ok=True)
     return output_dir
 
@@ -21,7 +21,7 @@ def set_all_paths(args, out=True):
         "cohort_path":        saved_data_path / "cohorts" / extractor,
         "features_path":      saved_data_path / "features",
         "folds_path":         saved_data_path / "folds" / cohort,
-        "top_features_path":  saved_data_path / "top_features",
+        "top_features_path":  Path(PROJECT_ROOT) /"data"/ "top_features",
     }
 
     if out:

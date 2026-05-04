@@ -2,9 +2,8 @@ import pandas as pd
 import numpy as np
 import pickle
 from flab_training.utils import safe_pos_freq, remove_features_not_in_train, compute_lab_frequency, ids_in_data, set_splits, compute_class_weight
-from flab_training.preprocessor import PreprocessorA, PreprocessorB, PreprocessorC_sup, PreprocessorC_unsup, PreprocessorD_unsup, PreprocessorD_sup
+from flab_training.preprocessor import PreprocessorA, PreprocessorB, PreprocessorC_sup, PreprocessorC_unsup, PreprocessorD_unsup, PreprocessorD_sup, PreprocessorML
 
-from config.constants import PROJECT_ROOT
 
 class TimeSeriesDataset:
     def __init__(self, args):
@@ -42,14 +41,14 @@ class TimeSeriesDataset:
 
     def get_temporal_data(self):
         
-        # select features specified by file
-        if self.args.feature_threshold:
+        '''# select features specified by file
+        if self.args.feature_selection:
             #feature_file = self.args.paths["top_features_path"] / f'fold_{self.args.fold}_features.pkl'
             feature_file = self.args.paths["top_features_path"] / 'mimic_top100_features.pkl'
             with open(feature_file, 'rb') as f:
                 self.selected_features = list(map(str, pickle.load(f)))
             self.data = self.data[self.data["itemid"].isin(self.selected_features)]
-            self.args.logger.write('\nFeature selected from file: ' + str(len(self.selected_features)))
+            self.args.logger.write('\nFeature selected from file: ' + str(len(self.selected_features)))'''
             
         # remove features not present in training data
         self.data = remove_features_not_in_train(self.data, self.args.ids["train"], self.args.logger)
@@ -148,6 +147,10 @@ class TimeSeriesDataset:
             self.preproc = PreprocessorD_unsup(self)
         elif model_type in ['emit'] and self.args.train_mode != "pretrain":
             self.preproc = PreprocessorD_sup(self)
+        elif model_type in ['random_forest', 'logistic_regression', 'gradient_boosting', 'xgboost', 'catboost']:
+            self.preproc = PreprocessorML(self)
+            
+            
         else:
             raise ValueError(f"Unknown model type: {model_type}")
         # preprocess data accordingly

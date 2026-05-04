@@ -515,3 +515,101 @@ class PreprocessorD_sup(PreprocessorD):  # EMIT supervised (finetuning)
         self.values, self.times, self.varis = values, times, varis
         self.input_dict = {"values" : self.values, "times" : self.times, "varis": self.varis}
         self.args.logger.write('Input prepared')
+
+
+
+
+class PreprocessorML(Preprocessor):
+
+    def get_feature_names(self, variant):
+        vars = self.variables
+        T = self.args.T
+        per_t = []
+        if "V" in variant:
+            per_t += [f"{v}_V" for v in vars]
+        if "M" in variant:
+            per_t += [f"{v}_M" for v in vars]
+        if "D" in variant:
+            per_t += [f"{v}_D" for v in vars]
+        if self.args.feature_combination_method == "concatenate":
+            ts_cols = [f"{col}_Bin{t}" for t in range(T) for col in per_t]
+        else:
+            ts_cols = per_t
+        demo_cols = list(self.dataset.static_data.columns)
+        return ts_cols + demo_cols
+
+    def trim(self):
+        # mean of duplicate measurements
+        #self.data = self.data.groupby(["hadm_id", "itemid","minute","ts_ind","var_ind"]).value.mean().reset_index()
+
+        self.data = self.data.sort_values("minute")
+        self.data['int'] = (self.data['minute'] // (60 * self.args.agg_int)).astype(int)
+        self.args.T = self.data.int.max() + 1
+        self.args.logger.write('\nData discretised')
+        self.args.logger.write('# intervals: '+str(self.args.T))
+        
+    def normalise(self):
+        self.means, self.stds = self.compute_means_stds()
+        self.values = (self.values-self.means)/self.stds
+        self.args.logger.write('Data normalised')
+
+    def compute_means_stds(self):
+        means = self.values[self.train_ind].mean(axis=(0, 1), keepdims=True)
+        stds = self.values[self.train_ind].std(axis=(0, 1), keepdims=True)
+        stds = np.where(stds == 0, 1.0, stds)
+        return means, stds
+
+    def prepare_inputs(self):
+        self.set_variables()
+        self.trim()
+        last, avgs, self.obs, self.delta, sums, counts = discrete_tensors(self.data, self.args.N, self.args.T, self.args.V)
+        self.values = avgs
+        
+        ## IMPUTATION
+        if self.args.impute == "fill":
+            self.values = fill_impute(self.values, self.obs)
+        else: # default is mean imputation
+            self.values = fill_mean(self.values, self.obs, self.train_ind)     
+            
+        self.input_dict = {"values_raw" : self.values, "obs" : self.obs, "delta" : self.delta}
+        # compute means and stds
+        #self.normalise()
+        #self.input_dict.update({"values_norm": self.values, "values_means": self.means, "values_stds": self.stds})
+        
+        
+        variant = self.args.variant
+        if variant == "V":
+            X_3d = self.values
+        elif variant == "M":
+            X_3d = self.obs
+        elif variant == "D":
+            X_3d = self.delta
+        elif variant == "MD":
+            X_3d = np.concatenate((self.obs, self.delta), axis=-1)
+        elif variant == "VM":
+            X_3d = np.concatenate((self.values, self.obs), axis=-1)
+        elif variant == "VD":
+            X_3d = np.concatenate((self.values, self.delta), axis=-1)
+        else:
+            X_3d = np.concatenate((self.values, self.obs, self.delta), axis=-1)
+        
+
+        if self.args.feature_combination_method == 'concatenate':
+            X_flat_ts = X_3d.reshape(X_3d.shape[0], -1)
+        else:
+            X_flat_ts = X_3d.mean(axis=1)
+            
+
+        X = np.concatenate([X_flat_ts, self.dataset.demo], axis=1) # already normalized demo and features
+        '''if self.args.model_type == 'logistic_regression':
+            from sklearn.preprocessing import StandardScaler
+            scaler = StandardScaler()
+            scaler.fit(X[self.train_ind])
+            X = scaler.transform(X)'''
+
+
+        self.input_dict["X_flat"] = X
+        self.input_dict["feature_names"] = self.get_feature_names(variant)
+        self.args.logger.write('ML flat matrix prepared.')
+
+

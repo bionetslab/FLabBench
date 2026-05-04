@@ -26,7 +26,7 @@ def main():
                         help="Override MIMIC root path. Default: from MIMIC_IV_PATH env.")
     parser.add_argument("--days", type=int, default=14,
                         help="Days before discharge to extract labs. Default: 14.")
-    parser.add_argument("--feature-threshold", action=argparse.BooleanOptionalAction, default=True,
+    parser.add_argument("--feature-selection", type=lambda x: x.lower() == "true", default=True,
                         help="Filter to top features before saving.")
     args = parser.parse_args()
 
@@ -41,7 +41,7 @@ def main():
     extractor = FeatureExtractor(
         mimic_dir=mimic_dir,
         features_base_path=paths["features_path"],
-        top_features_path=paths["top_features_path"] if args.feature_threshold else None,
+        top_features_path=paths["top_features_path"] if args.feature_selection else None,
         days_before_discharge=args.days,
     )
 

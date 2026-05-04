@@ -25,7 +25,7 @@ class Extractor:
         extractor = FeatureExtractor(
             mimic_dir=mimic_dir,
             features_base_path=self.args.paths["features_path"],
-            top_features_path=self.args.paths["top_features_path"] if self.args.feature_threshold else None,
+            top_features_path=self.args.paths["top_features_path"] if self.args.feature_selection else None,
             days_before_discharge=getattr(self.args, "days_before_discharge", 14),
         )
         extractor.extract(cohort_df, self.args.cohort)

@@ -14,6 +14,7 @@ global:
   calibrate_threshold: 0
   window_forecast: 10080
   window_pred: 1440
+  pos_class_weight: 0
 
 tcn:
   grid_search:
@@ -101,3 +102,85 @@ mlp:
     agg: ["mean"]
     impute: ["fill"]
     pos_class_weight: [0, 1]
+
+random_forest:
+  default:
+    n_estimators: 150
+    max_depth: 10
+    min_samples_split: 5
+    variant: VMD
+    impute: fill
+    feature_combination_method: concatenate
+  grid_search:
+    variant: [VMD] # Only with concatenate
+    impute: [fill]
+    feature_combination_method: [aggregate, concatenate]
+    n_estimators: [100, 200]
+    max_depth: [5, 10]
+    min_samples_split: [5, 10]
+
+logistic_regression:
+  default:
+    C: 0.1
+    penalty: l2
+    max_iter: 2000
+    variant: VMD
+    impute: fill
+    feature_combination_method: concatenate
+  grid_search:
+    variant: [VMD]
+    impute: [fill]
+    feature_combination_method: [aggregate, concatenate]
+    C: [0.01, 0.1, 1]
+    penalty: [l2]
+    max_iter: [2000]
+
+gradient_boosting:
+  default:
+    variant: VMD
+    impute: fill
+    feature_combination_method: concatenate
+    learning_rate: 0.1
+    max_iter: 200
+    max_depth: 5
+  grid_search:
+    variant: [VMD]
+    impute: [fill]
+    feature_combination_method: [aggregate, concatenate]
+    learning_rate: [0.01, 0.1]
+    max_iter: [100, 200]
+    max_depth: [5, 10]
+
+xgboost:
+  default:
+    variant: VMD
+    impute: fill
+    feature_combination_method: concatenate
+    learning_rate: 0.1
+    max_depth: 5
+    n_estimators: 200
+    scale_pos_weight: 2
+  grid_search:
+    variant: [VMD]
+    impute: [fill]
+    feature_combination_method: [aggregate, concatenate]
+    learning_rate: [0.01, 0.1]
+    max_depth: [3, 5]
+    n_estimators: [100, 200]
+    scale_pos_weight: [1, 2]
+
+catboost:
+  default:
+    variant: VMD
+    impute: fill
+    feature_combination_method: concatenate
+    learning_rate: 0.1
+    depth: 6
+    n_estimators: 300
+  grid_search:
+    variant: [VMD]
+    impute: [fill]
+    feature_combination_method: [aggregate, concatenate]
+    learning_rate: [0.03, 0.1]
+    depth: [4, 6]
+    n_estimators: [200, 300]
