@@ -573,8 +573,8 @@ class PreprocessorML(Preprocessor):
             
         self.input_dict = {"values_raw" : self.values, "obs" : self.obs, "delta" : self.delta}
         # compute means and stds
-        #self.normalise()
-        #self.input_dict.update({"values_norm": self.values, "values_means": self.means, "values_stds": self.stds})
+        self.normalise()
+        self.input_dict.update({"values_norm": self.values, "values_means": self.means, "values_stds": self.stds})
         
         
         variant = self.args.variant
@@ -600,7 +600,7 @@ class PreprocessorML(Preprocessor):
             X_flat_ts = X_3d.mean(axis=1)
             
 
-        X = np.concatenate([X_flat_ts, self.dataset.demo_raw], axis=1) # Demo raw or normalized?
+        X = np.concatenate([X_flat_ts, self.dataset.demo], axis=1) # Demo raw or normalized?
         '''if self.args.model_type == 'logistic_regression':
             from sklearn.preprocessing import StandardScaler
             scaler = StandardScaler()

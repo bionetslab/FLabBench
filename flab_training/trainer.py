@@ -315,6 +315,8 @@ class CLTrainer:
         self.model.fit(X_fit, y_fit)
         t_train = time.time() - t0
 
+        self._save_feature_importances(X_fit.columns)
+
         val_res = self._evaluate(X.iloc[val_ind], self.y[val_ind]) if self.args.cv_mode == "grid" and self.val_bool else None
         test_res = self._evaluate(X.iloc[test_ind], self.y[test_ind]) if self.test_bool else None
 
@@ -338,6 +340,19 @@ class CLTrainer:
             self.args.logger.write(f"\n Oversampling Applied.")
             return ros.fit_resample(X, y)
         return X, y
+
+    def _save_feature_importances(self, feature_names):
+        if self.args.cv_mode == "grid":
+            return
+
+        if hasattr(self.model, "feature_importances_"): # tree models
+            importances = self.model.feature_importances_
+        else:
+            return
+
+        df = pd.DataFrame({"feature": feature_names, "importance": importances})
+        df = df.sort_values("importance", ascending=False).reset_index(drop=True)
+        df.to_csv(os.path.join(self.output_dir, "feature_importances.csv"), index=False)
 
     def _evaluate(self, X, y):
         proba = self.model.predict_proba(X)[:, 1]
