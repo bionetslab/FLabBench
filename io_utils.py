@@ -4,7 +4,7 @@ from config.constants import PROJECT_ROOT
 
 
 def get_output_dir(args):
-    output_dir = Path(PROJECT_ROOT) / "saved_data" / "dicts" / args.cohort / args.model_type / args.prefix / f"fold_{args.fold}" / f"agg_int_{args.agg_int}"/ f"impute_{args.impute}"/ f"variant_{args.variant}"
+    output_dir = Path(PROJECT_ROOT) / "saved_data" / "results" / args.cohort / args.model_type / args.prefix / f"fold_{args.fold}" / f"agg_int_{args.agg_int}"/ f"impute_{args.impute}"/ f"variant_{args.variant}"
     output_dir.mkdir(parents=True, exist_ok=True)
     return output_dir
 

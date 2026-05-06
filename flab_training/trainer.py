@@ -5,6 +5,7 @@ import psutil
 import pandas as pd
 import pickle
 import time
+from imblearn.over_sampling import RandomOverSampler
 from tqdm import tqdm
 from torch.optim import AdamW
 from flab_training.evaluator import EvaluatorPretrain, EvaluatorTrain
@@ -13,7 +14,7 @@ from flab_training.tracker import Tracker
 from flab_training.utils import format_dict, count_parameters
 from math import ceil
 
-class Trainer:
+class TSTrainer:
     def __init__(self, args, model, batcher):
         # get data and params
         self.args = args
@@ -277,4 +278,71 @@ class Trainer:
         self.args.logger.write(f'Updating wait to {self.wait} based on {self.args.criterion}')
         if self.wait == 0:
             self.args.logger.write('Patience reached')
-            self.patience_reached = True
+            self.patience_reached = True   
+
+class CLTrainer:
+    def __init__(self, args, model, input_dict):
+        self.args = args
+        self.model = model
+        self.input_dict = input_dict
+        self.splits = input_dict["splits"]
+        self.y = input_dict["target"]
+        self.val_bool = len(self.splits["val"]) != 0
+        self.test_bool = len(self.splits["test"]) != 0
+        self.output_dir = args.paths["output_path"]
+        self.saver = ResultSaverGrid(self.output_dir) if args.cv_mode == "grid" else ResultSaverBest(self.output_dir)
+        self.args.logger.write(f"\nSaving results in folder: {self.output_dir}")
+        self.args.logger.write(f"Model params: {self.args.model_params}")
+
+    def train(self):
+        X = self.input_dict["X_flat"]
+        train_ind = self.splits["train"]
+        val_ind = self.splits["val"]
+        test_ind = self.splits["test"]
+
+        X_train, y_train = X.iloc[train_ind], self.y[train_ind]
+
+        t0 = time.time()
+        if self.args.cv_mode == "grid":
+            X_fit,y_fit = X_train,y_train
+
+        else:
+            X_fit = pd.concat([X_train, X.iloc[val_ind]]) if self.val_bool else X_train
+            y_fit = np.concatenate([y_train, self.y[val_ind]]) if self.val_bool else y_train
+            
+
+        X_fit, y_fit = self._oversample(X_fit, y_fit)
+        self.model.fit(X_fit, y_fit)
+        t_train = time.time() - t0
+
+        val_res = self._evaluate(X.iloc[val_ind], self.y[val_ind]) if self.args.cv_mode == "grid" and self.val_bool else None
+        test_res = self._evaluate(X.iloc[test_ind], self.y[test_ind]) if self.test_bool else None
+
+        if val_res:
+            self.args.logger.write('Final val res: ' + str(format_dict(val_res)))
+        if test_res:
+            self.args.logger.write('Final test res: ' + str(format_dict(test_res)))
+
+        final_results = {
+            "param_info": {"total_parameters": 0, "trainable_parameters": 0},
+            "losses": {"epoch": [1], "epoch_time": [t_train], "epoch_memory": [0.0], "train_loss": [0.0]},
+            "final_metrics": {"val": val_res, "test": test_res},
+            "time_memory": {"total_train_time": t_train, "peak_memory_mb": 0.0},
+            "args": {k: v for k, v in vars(self.args).items() if k not in ["paths", "ids", "logger"]},
+        }
+        self.saver.save(final_results)
+
+    def _oversample(self, X, y):
+        if getattr(self.args, "oversampling", None) == "minority":
+            ros = RandomOverSampler(sampling_strategy='minority', random_state=self.args.seed)
+            self.args.logger.write(f"\n Oversampling Applied.")
+            return ros.fit_resample(X, y)
+        return X, y
+
+    def _evaluate(self, X, y):
+        proba = self.model.predict_proba(X)[:, 1]
+        proba_clipped = np.clip(proba, 1e-7, 1 - 1e-7)
+        loss = float(-np.mean(y * np.log(proba_clipped) + (1 - y) * np.log(1 - proba_clipped)))
+        evaluator = EvaluatorTrain.__new__(EvaluatorTrain)
+        evaluator.thresh = 0.5 #since we skipped the init in EvaluatorTrain because of not having batcher I defined thresh here
+        return evaluator._compute_classification_metrics(y, proba, loss=loss)

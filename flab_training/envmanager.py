@@ -15,8 +15,8 @@ from config.constants import num_folds, num_inner_folds
 from sklearn.model_selection import StratifiedGroupKFold
 
 from flab_training.dataset import TimeSeriesDataset
-from flab_training.trainer import Trainer
-from flab_training.factory import build_model, build_batcher
+from flab_training.trainer import TSTrainer, CLTrainer
+from flab_training.factory import build_ts_model, build_cl_model, build_batcher, CL_MODELS
 from flab_training.extractor import ExtractorTrain, ExtractorPretrain
 from flab_training.batcher import Batcher, BatcherA, BatcherB, BatcherC_sup, BatcherC_unsup
 
@@ -25,7 +25,7 @@ class EnvManager:
         # set env config
         self.args = args
         self.nfolds = num_folds
-        self.config_path = args.config_path or "flab_training/ts_config_params.yaml"
+        self.config_path = args.config_path or "flab_training/config_params.yaml"
 
         # load config and initialise environment
         self.set_device()
@@ -54,7 +54,7 @@ class EnvManager:
             raise ValueError(f"Model config for '{self.args.model_type}' not found in model_params.yaml")
 
         self.param_grid = model_config.get("grid_search", {})
-        self.default_params = model_config.get(self.args.cohort, {})
+        self.default_params = model_config.get(self.args.cohort) or model_config.get("default", {}) #check later can we have it cohort specific?
         self.default_params = self._check_param_list(self.default_params, ["hid_dims"])
         
         self._set_args_attributes(global_config)
@@ -95,12 +95,6 @@ class EnvManager:
 
         self._set_args_attributes(model_params, f"{mode} model parameters applied, params:{model_params}")
         self.args.model_params = model_params
-        # Log EMIT event-mask knobs
-        thr = getattr(self.args, "event_mask_threshold", None)
-        insig = getattr(self.args, "insignificant_prob", None)
-
-        if thr is not None or insig is not None:
-            self.args.logger.write(f"Event mask config : threshold={thr}, insignificant_prob={insig}")
 
     
     def set_ids(self, mode="default", ids_dict=None, inner_fold=None):
@@ -174,11 +168,6 @@ class EnvManager:
         self.args.logger.write('######### START #########')
         self.args.logger.write('Global environment loaded')
         self.args.logger.write(f'Training in {self.args.train_mode} mode on {self.args.device}')
-        # EMIT-specific (or config-dependent) knobs; log if present
-        thr = getattr(self.args, "event_mask_threshold", None)
-        insig = getattr(self.args, "insignificant_prob", None)
-        if thr is not None or insig is not None:
-            self.args.logger.write(f"Event mask config: threshold={thr}, insignificant_prob={insig}")
 
     def set_stratify_batch(self):
         # if task is very unbalanced (NF) > stratify batch
@@ -195,7 +184,7 @@ class EnvManager:
         outer_dev_ids = np.concatenate([train_ids, val_ids])  # remove test ids
 
         # read cohort file    
-        cohort_file = pd.read_csv(self.args.paths["cohort_path"], compression='gzip')
+        cohort_file = pd.read_csv(self.args.paths["cohort_path"] / f"cohort_{self.args.cohort}.csv.gz", compression='gzip')
 
         # extract relevant admissions, preserve order
         dev_adms = (
@@ -281,21 +270,24 @@ class EnvManager:
         
     def train(self):
         set_all_seeds(self.args.seed, self.args.fast)
-        
+
         dataset = TimeSeriesDataset(self.args)
-        model = build_model(self.args)       
-        batcher = build_batcher(self.args, dataset.preproc.input_dict)
-        
-        # free dataset once batcher has extracted what it needs
-        del dataset
-        torch.cuda.empty_cache()
-        
-        trainer = Trainer(self.args, model, batcher)
-        trainer.train() 
-        
-        # cleanup after training
-        del model, batcher, trainer
-        torch.cuda.empty_cache()     
+
+        if self.args.model_type in CL_MODELS:
+            cl_model = build_cl_model(self.args)
+            cl_trainer = CLTrainer(self.args, cl_model, dataset.preproc.input_dict)
+            del dataset
+            cl_trainer.train()
+            del cl_model, cl_trainer
+        else:
+            model = build_ts_model(self.args)
+            batcher = build_batcher(self.args, dataset.preproc.input_dict)
+            del dataset
+            torch.cuda.empty_cache()
+            trainer = TSTrainer(self.args, model, batcher)
+            trainer.train()
+            del model, batcher, trainer
+            torch.cuda.empty_cache()
         
     def train_full(self):
         
@@ -304,7 +296,11 @@ class EnvManager:
             
         # GRID SEARCH > NESTED CROSSVALIDATION
         if self.args.grid == "nested":
-            
+
+            grid_file = Path(self.args.paths["output_path"]) / "grid_results.csv"
+            if grid_file.exists():
+                grid_file.unlink()
+
             # get all inner folds and parameter combinations
             self.get_param_grid_list()
             self.get_ids_grid_list()

@@ -600,7 +600,7 @@ class PreprocessorML(Preprocessor):
             X_flat_ts = X_3d.mean(axis=1)
             
 
-        X = np.concatenate([X_flat_ts, self.dataset.demo], axis=1) # already normalized demo and features
+        X = np.concatenate([X_flat_ts, self.dataset.demo_raw], axis=1) # Demo raw or normalized?
         '''if self.args.model_type == 'logistic_regression':
             from sklearn.preprocessing import StandardScaler
             scaler = StandardScaler()
@@ -608,8 +608,9 @@ class PreprocessorML(Preprocessor):
             X = scaler.transform(X)'''
 
 
-        self.input_dict["X_flat"] = X
-        self.input_dict["feature_names"] = self.get_feature_names(variant)
+        feature_names = self.get_feature_names(variant)
+        self.input_dict["X_flat"] = pd.DataFrame(X, columns=feature_names)
+        self.input_dict["feature_names"] = feature_names
         self.args.logger.write('ML flat matrix prepared.')
 
 
