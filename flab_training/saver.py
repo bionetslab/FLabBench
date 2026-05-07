@@ -41,6 +41,7 @@ class ResultSaverGrid(ResultSaver):
             "split": "val",
             "epoch": results["losses"]["epoch"][-1],  # last epoch
             "inner_fold": results["args"].get("inner_fold", None), # inner CV fold if available
+            "search": results["args"].get("search", "custom"),
             **results["args"]["model_params"],
             **results["final_metrics"]["val"],
         }        

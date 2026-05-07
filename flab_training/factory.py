@@ -1,5 +1,6 @@
 import ast
 import inspect
+import numpy as np
 from sklearn.ensemble import HistGradientBoostingClassifier, RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 import xgboost as xgb
@@ -60,6 +61,8 @@ def build_cl_model(args):
     def _parse(v):
         if isinstance(v, str) and v.startswith('{'):
             return ast.literal_eval(v)
+        if isinstance(v, np.generic):
+            return v.item()
         if isinstance(v, float) and v == int(v):
             return int(v)
         return v

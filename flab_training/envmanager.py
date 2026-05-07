@@ -13,6 +13,9 @@ from flab_training.utils import set_all_seeds, load_fold_file
 from io_utils import set_all_paths
 from config.constants import num_folds, num_inner_folds
 from sklearn.model_selection import StratifiedGroupKFold
+import optuna
+optuna.logging.set_verbosity(optuna.logging.WARNING)
+
 
 from flab_training.dataset import TimeSeriesDataset
 from flab_training.trainer import TSTrainer, CLTrainer
@@ -165,7 +168,7 @@ class EnvManager:
 
     def setup_logging(self):
         self.args.logger = Logger(self.args.paths["output_path"], 'log.txt')
-        self.args.logger.write('######### START #########')
+        self.args.logger.write(f"\n{'#'*50} START {'#'*50}")
         self.args.logger.write('Global environment loaded')
         self.args.logger.write(f'Training in {self.args.train_mode} mode on {self.args.device}')
 
@@ -176,7 +179,17 @@ class EnvManager:
     def get_param_grid_list(self):
         keys = list(self.param_grid.keys())
         values = [self.param_grid[k] for k in keys]
-        self.param_grid_list = [dict(zip(keys, v)) for v in product(*values)]
+        all_combos = [dict(zip(keys, v)) for v in product(*values)]
+
+        if self.args.search == "random":
+            if self.args.n_trials is None: 
+                raise ValueError("number of trails for random search is not specified")
+            self.args.logger.write("Applay Random search n trials:", self.args.n_trials)
+            n = min(self.args.n_trials, len(all_combos))
+            indices = np.random.choice(len(all_combos), size=n, replace=False)
+            self.param_grid_list = [all_combos[i] for i in indices]
+        else:
+            self.param_grid_list = all_combos
 
     def get_ids_grid_list(self): # Generating new splits
         # read default fold
@@ -207,7 +220,49 @@ class EnvManager:
                 "test": np.array([])  # empty array for test
             }) 
         self.ids_grid_list = inner_splits
-    
+
+    def run_optuna(self):
+        
+        n_inner_folds = len(self.ids_grid_list)
+        grid_file = Path(self.args.paths["output_path"]) / "grid_results.csv"
+        n_trials = self.args.n_trials or 20
+
+        def objective(trial):
+            params = {}
+            for k, v in self.param_grid.items():
+                choices = [tuple(x) if isinstance(x, list) else x for x in v]
+                suggested = trial.suggest_categorical(k, choices)
+                params[k] = list(suggested) if isinstance(suggested, tuple) else suggested
+
+            self.args.logger.write(f"\n{'='*50}")
+            self.args.logger.write(f"OPTUNA TRIAL {trial.number + 1}/{n_trials} | Params: {params}")
+
+            for i in range(n_inner_folds):
+                self.args.logger.write(f"Inner fold {i + 1}/{n_inner_folds}")
+                self.set_model_params(mode="custom", param_dict=params)
+                self.set_ids(mode="grid", inner_fold=i)
+                self.train()
+
+            trial_rows = pd.read_csv(grid_file).tail(n_inner_folds)
+            mean_auroc = trial_rows["auroc"].mean()
+            mean_epoch = trial_rows["epoch"].mean()
+            trial.set_user_attr("mean_epoch", mean_epoch)
+
+            self.args.logger.write(f"Trial {trial.number + 1} mean auroc: {mean_auroc:.4f} | mean epoch: {mean_epoch:.1f}")
+            return mean_auroc
+
+        study = optuna.create_study(direction="maximize")
+        study.optimize(objective, n_trials=n_trials)
+
+        best_trial = study.best_trial
+        best_params = {k: list(v) if isinstance(v, tuple) else v for k, v in best_trial.params.items()}
+        best_params = self._check_param_list(best_params, ["hid_dims"])
+
+        self.args.best_params = best_params
+        self.args.mean_epochs = best_trial.user_attrs["mean_epoch"]
+        self.args.logger.write(f"Optuna best params: {self.args.best_params}")
+        self.args.logger.write(f"Optuna mean epochs: {self.args.mean_epochs:.1f}")
+
     def _get_param_names(self):
 
         # get best params names (from grid search or default params depending on training mode)
@@ -260,7 +315,7 @@ class EnvManager:
             .iloc[0]
         )
         # build dict of best params
-        best_params = dict(zip(param_names, best_tuple.name))
+        best_params = {k: v.item() if isinstance(v, np.generic) else v for k, v in zip(param_names, best_tuple.name)}
         # ensure hid_dims is a list of ints if present
         best_params = self._check_param_list(best_params, ["hid_dims"])
             
@@ -302,19 +357,33 @@ class EnvManager:
                 grid_file.unlink()
 
             # get all inner folds and parameter combinations
-            self.get_param_grid_list()
             self.get_ids_grid_list()
-            
-            # train on each parameter combination and each split
-            for i, ids in enumerate(self.ids_grid_list):
-                for p, params in enumerate(self.param_grid_list):        
 
-                    self.set_model_params(mode="grid", param_ind=p)
-                    self.set_ids(mode="grid", inner_fold=i)
-                    self.train()
+            # nested CV type
+            if self.args.search == "optuna":
+                self.run_optuna()
+                self._set_args_attributes(self.args.best_params)
+                self.args.model_params = self.args.best_params
+            else:
+                self.get_param_grid_list()
 
-            # retrain with best params on the default split
-            self.set_model_params(mode="best") 
+                n_folds = len(self.ids_grid_list)
+                n_params = len(self.param_grid_list)
+                self.args.logger.write(f"Grid search: {n_folds} inner folds x {n_params} param combos = {n_folds * n_params} runs")
+
+                for i, _ in enumerate(self.ids_grid_list):
+                    for p, params in enumerate(self.param_grid_list):
+                        self.args.logger.write(f"\n{'='*50}")
+                        self.args.logger.write(f"INNER FOLD {i+1}/{n_folds} | PARAM COMBO {p+1}/{n_params}")
+                        self.args.logger.write(f"Params: {params}")
+
+                        self.set_model_params(mode="grid", param_ind=p)
+                        self.set_ids(mode="grid", inner_fold=i)
+                        self.train()
+
+                # retrain with best params on the default split
+                self.set_model_params(mode="best")
+
             self.set_ids(mode="final")
             self.train()
             
@@ -343,7 +412,7 @@ class EnvManager:
         # TRAIN ON THE BEST CONFIG FOUND in GRID-SEARCH (saved in YAML file) with predefined number of epoch
         elif self.args.grid == "best":
             
-            #train on default parameters and default split
+            #train on default parameters and default split # shouldn't it be best?
             self.set_model_params(mode="default") 
             self.set_ids(mode="final")
             self.train()
