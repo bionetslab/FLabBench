@@ -1,0 +1,32 @@
+name: flabbench
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - numpy=1.26.4
+  - pandas
+  - scikit-learn=1.0.2
+  - scipy
+  - matplotlib
+  - plotly
+  - networkx
+  - lightgbm
+  - catboost
+  - py-xgboost
+  - imbalanced-learn
+  - numba
+  - shap
+  - tqdm
+  - jupyterlab
+  - ipywidgets
+  - notebook
+  - python-graphviz
+  - pip
+  - pip:
+    - torch==2.7.0
+    - torchvision==0.22.0
+    - torchaudio
+    - optuna==4.8.0
+    - transformers==4.35.2
