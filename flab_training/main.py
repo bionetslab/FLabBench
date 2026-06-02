@@ -26,6 +26,11 @@ parser.add_argument("--freeze", action="store_true", help="Freeze all except for
 parser.add_argument("--config_path", default=None)
 parser.add_argument("--split_seed", default=None)
 parser.add_argument("--fast", action="store_true", help="Disable determinism for faster computation")
+parser.add_argument("--search", type=str, default="grid", help="Hyperparameter search strategy: 'grid', 'random', or 'optuna'")
+parser.add_argument("--n_trials", type=int, default=20, help="Number of Optuna trials (used when --search optuna)")
+parser.add_argument("--impute", type=str, default="fill")
+parser.add_argument("--variant", type=str, default="VMD")
+parser.add_argument("--extractor", type=str, default="DTB")
                     
 args = parser.parse_args()
 

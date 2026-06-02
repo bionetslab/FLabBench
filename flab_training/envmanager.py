@@ -231,7 +231,7 @@ class EnvManager:
             params = {}
             for k, v in self.param_grid.items():
                 choices = [tuple(x) if isinstance(x, list) else x for x in v]
-                suggested = trial.suggest_categorical(k, choices)
+                suggested = trial.suggest_categorical(k, choices) # TODO: suggest_categorical treats lr/dropout as unrelated labels, could be continuous params for better optimization 
                 params[k] = list(suggested) if isinstance(suggested, tuple) else suggested
 
             self.args.logger.write(f"\n{'='*50}")

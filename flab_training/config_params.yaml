@@ -218,7 +218,7 @@ gradient_boosting:
   grid_search:
     variant: [VMD]
     impute: [fill]
-    feature_combination_method: [aggregate, concatenate]
+    feature_combination_method: [concatenate]
     learning_rate: [0.01, 0.1]
     max_iter: [100, 200]
     max_depth: [5, 10]
@@ -235,7 +235,7 @@ xgboost:
   grid_search:
     variant: [VMD]
     impute: [fill]
-    feature_combination_method: [aggregate, concatenate]
+    feature_combination_method: [concatenate]
     learning_rate: [0.01, 0.1]
     max_depth: [3, 5]
     n_estimators: [100, 200]
@@ -254,7 +254,7 @@ catboost:
   grid_search:
     variant: [VMD]
     impute: [fill]
-    feature_combination_method: [aggregate, concatenate]
+    feature_combination_method: [concatenate]
     learning_rate: [0.03, 0.1]
     depth: [4, 6]
     n_estimators: [200, 300]
