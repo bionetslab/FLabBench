@@ -8,6 +8,29 @@ MIMIC_IV_PATH = os.environ.get("MIMIC_IV_PATH")
 #export MIMIC_IV_PATH="/Users/zy51nise/Documents/BIONETs/FLabNet/Data/mimiciv/2.0/"
 #export MIMIC_IV_PATH="/home/vault/b310dc/b310dc10/Data/mimiciv/2.0/"
 
+ICD_CHAPTERS = {
+    "A": "Infectious", "B": "Infectious",
+    "C": "Malignant Neoplasms", 
+    "D": "Blood/Other Neoplasms",
+    "E": "Endocrine & Metabolic", 
+    "F": "Mental",
+    "G": "Nervous", 
+    "H": "Eye/Ear",
+    "I": "Circulatory", 
+    "J": "Respiratory",
+    "K": "Digestive", 
+    "L": "Skin",
+    "M": "Musculoskeletal", 
+    "N": "Genitourinary",
+    "O": "Pregnancy", "P": "perinatal", "Q": "Congenital",
+    "R": "Symptoms and abnormal findings", "S": "Injury Site", "T": "Injury Type",
+    "V": "external death causes(Transport accidents)",
+    "W": "external death causes(Accidental injuries)",
+    "X": "external death causes(Accidents + intentional harm)",
+    "Y": "external death causes(Legal, medical, unknown intent + sequelae)",
+    "Z": "Non-disease factors",
+}
+
 RANDOM_SEED = 42
 num_folds = 5
 num_inner_folds = 3
