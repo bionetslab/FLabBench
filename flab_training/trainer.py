@@ -360,4 +360,5 @@ class CLTrainer:
         loss = float(-np.mean(y * np.log(proba_clipped) + (1 - y) * np.log(1 - proba_clipped)))
         evaluator = EvaluatorTrain.__new__(EvaluatorTrain)
         evaluator.thresh = 0.5 #since we skipped the init in EvaluatorTrain because of not having batcher I defined thresh here
+        evaluator.args = self.args
         return evaluator._compute_classification_metrics(y, proba, loss=loss)

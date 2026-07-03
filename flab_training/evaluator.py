@@ -77,6 +77,12 @@ class EvaluatorTrain(Evaluator):
         return result
 
     def _compute_classification_metrics(self, true, pred, loss):
+        if len(np.unique(true)) < 2:
+            self.args.logger.write(f"WARNING: Only one class present in y_true (unique={np.unique(true)}). Metrics set to NaN.")
+            nan = float('nan')
+            return {'loss': loss, 'auroc': nan, 'auprc': nan, 'minrp': nan,
+                    'precision': nan, 'recall': nan, 'balanced_acc': nan,
+                    'mcc': nan, 'f1': nan, 'f2': nan}
         precision, recall, _ = precision_recall_curve(true, pred)
         pr_auc = auc(recall, precision)
         minrp = np.minimum(precision, recall).max()
