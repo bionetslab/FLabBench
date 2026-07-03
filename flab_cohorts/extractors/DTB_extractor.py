@@ -89,8 +89,9 @@ class DTBExtractor(BaseExtractor):
                 (sub_adms["admittime"] >= sub_adms["D1_date"]) 
                 & (sub_adms["admittime"] <= sub_adms["D1_W"]) 
                 & ((sub_adms["D2_date"].isna()) | (sub_adms["admittime"] < sub_adms["D2_date"]))
-                #& ~((sub_adms["dod"] <= sub_adms["D1_5y"]) & sub_adms["D2_date"].isna()) 
-                & ~(sub_adms["deathtime"].notna()& (sub_adms["dod"] <= sub_adms["D1_W"]) & sub_adms["D2_date"].isna())
+                #& ~((sub_adms["dod"] <= sub_adms["D1_5y"]) & sub_adms["D2_date"].isna())  # patient died within 5 years and never got D2
+                & ~((sub_adms["dod"] <= sub_adms["D1_W"]) & sub_adms["D2_date"].isna())# patient died within D1 and D1+W to avoid survival bias
+                #& ~(sub_adms["deathtime"].notna()& (sub_adms["dod"] <= sub_adms["D1_W"]) & sub_adms["D2_date"].isna())
                 #& ~(sub_adms["deathtime"].notna() & (sub_adms["deathtime"] <= sub_adms["D1_5y"]) & sub_adms["D2_date"].isna())
                 & (sub_adms["next_admittime"].notna() & (sub_adms["next_admittime"] <= sub_adms["D1_5y"]))
             ]
@@ -119,7 +120,7 @@ class DTBExtractor(BaseExtractor):
     
     def save_edge_cohort(self, cohort: pd.DataFrame, D1: str, D2: str, W: float):
         cohort = cohort.rename(columns={"target_D2_5y": "label"})
-        cohort.to_csv(self.paths["cohort_path"] / f"cohort_{D1}-{D2}.csv.gz", index=False, compression="gzip")
+        cohort.to_csv(self.paths["cohort_path"] / f"{D1}-{D2}.csv.gz", index=False, compression="gzip")
     
     def extract_full_cohort(self, cohort: str) -> pd.DataFrame:
         self.sel_edges = self.select_edges(cohort)
