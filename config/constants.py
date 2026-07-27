@@ -4,10 +4,10 @@ import os
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DTB_DATA_PATH = PROJECT_ROOT / "data" / "DTB_TJ"
 
-MIMIC_IV_PATH = os.environ.get("MIMIC_IV_PATH")
+#MIMIC_IV_PATH = os.environ.get("MIMIC_IV_PATH")
 #export MIMIC_IV_PATH="/Users/zy51nise/Documents/BIONETs/FLabNet/Data/mimiciv/2.0/"
 #export MIMIC_IV_PATH="/home/vault/b310dc/b310dc10/Data/mimiciv/2.0/"
-
+MIMIC_IV_PATH="/Users/zy51nise/Documents/BIONETs/FLabNet/Data/mimiciv/2.0/"
 ICD_CHAPTERS = {
     "A": "Infectious", "B": "Infectious",
     "C": "Malignant Neoplasms", 
