@@ -22,6 +22,7 @@ def set_all_paths(args, out=True):
         "features_path":      saved_data_path / "features",
         "folds_path":         saved_data_path / "folds" / cohort,
         "top_features_path":  Path(PROJECT_ROOT) /"data"/ "top_features",
+        "features_selected_path": saved_data_path / "features_selected_corr",
     }
 
     if out:

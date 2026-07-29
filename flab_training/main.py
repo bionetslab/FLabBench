@@ -15,7 +15,10 @@ parser.add_argument("--fold", type=int, default=0)
 parser.add_argument("--model_type", type=str, default="strats")
 parser.add_argument("--grid", type=str, default="none")
 parser.add_argument("--pretrain", action="store_true", help="Enable pretraining mode")
-parser.add_argument("--feature_threshold", action="store_true", help="Select top 100 features in MIMIC")
+parser.add_argument("--feature-selection", type=lambda x: x.lower() == "true", default=True, help="Select top 100 features in MIMIC")
+parser.add_argument("--feature-selection-method", type=str, default="mimic_top_100",
+                     choices=["mimic_top_100", "correlation_top_100", "correlation_fdr", "MRMR_top_100"],
+                     help="Which precomputed feature list to use when --feature-selection is true")
 parser.add_argument("--load_ckpt_path", type=str, default=None)
 parser.add_argument("--prefix", type=str, default=None)
 parser.add_argument("--static_threshold", type=int, default=0)
@@ -30,8 +33,7 @@ parser.add_argument("--search", type=str, default="grid", help="Hyperparameter s
 parser.add_argument("--n_trials", type=int, default=20, help="Number of Optuna trials (used when --search optuna)")
 parser.add_argument("--impute", type=str, default="fill")
 parser.add_argument("--variant", type=str, default="VMD")
-parser.add_argument("--extractor", type=str, default="DTB")
-                    
+parser.add_argument("--extractor", type=str, default="DTB")              
 args = parser.parse_args()
 
 # GRID SEARCH
@@ -39,6 +41,6 @@ envmg = EnvManager(args)
 envmg.train_full()
     
     
-#python -m ts_model_training.main.py --dataset MIMIC_IV --cohort mimic_cohort_NF_30_days --fold 0 --model_type gru --feature_threshold 1 --static_threshold 0 --hid_dim_demo 64 --prefix test
+#python -m ts_model_training.main.py --dataset MIMIC_IV --cohort mimic_cohort_NF_30_days --fold 0 --model_type gru --feature-selection true --static_threshold 0 --hid_dim_demo 64 --prefix test
 
-#python -m ts_model_training.main.py --dataset MIMIC_IV --cohort mimic_all --fold 0 --model_type strats --static_threshold 0 --hid_dim_demo 64  --feature_threshold --pretrain
+#python -m ts_model_training.main.py --dataset MIMIC_IV --cohort mimic_all --fold 0 --model_type strats --static_threshold 0 --hid_dim_demo 64  --feature-selection true --pretrain

@@ -41,14 +41,18 @@ class TimeSeriesDataset:
 
     def get_temporal_data(self):
         
-        '''# select features specified by file
+        # select features specified by file
         if self.args.feature_selection:
-            #feature_file = self.args.paths["top_features_path"] / f'fold_{self.args.fold}_features.pkl'
-            feature_file = self.args.paths["top_features_path"] / 'mimic_top100_features.pkl'
+            method = getattr(self.args, "feature_selection_method", "mimic_top_100")
+            if method == "mimic_top_100":
+                feature_file = self.args.paths["top_features_path"] / 'mimic_top100_features.pkl'
+            else:
+                method_dir = {"correlation_top_100": "top100", "correlation_fdr": "fdr", "MRMR_top_100": "mrmr100"}[method]
+                feature_file = self.args.paths["features_selected_path"] / method_dir / self.args.cohort / f"fold_{self.args.fold}" / "selected_itemids.pkl"
             with open(feature_file, 'rb') as f:
                 self.selected_features = list(map(str, pickle.load(f)))
             self.data = self.data[self.data["itemid"].isin(self.selected_features)]
-            self.args.logger.write('\nFeature selected from file: ' + str(len(self.selected_features)))'''
+            self.args.logger.write(f'\nFeature selected from {method} file: ' + str(len(self.selected_features)))
             
         # remove features not present in training data
         self.data = remove_features_not_in_train(self.data, self.args.ids["train"], self.args.logger)
