@@ -33,7 +33,8 @@ parser.add_argument("--search", type=str, default="grid", help="Hyperparameter s
 parser.add_argument("--n_trials", type=int, default=20, help="Number of Optuna trials (used when --search optuna)")
 parser.add_argument("--impute", type=str, default="fill")
 parser.add_argument("--variant", type=str, default="VMD")
-parser.add_argument("--extractor", type=str, default="DTB")              
+parser.add_argument("--extractor", type=str, default="DTB")
+parser.add_argument("--first_adm_only", action="store_true", help="Keep only the first admission per patient")
 args = parser.parse_args()
 
 # GRID SEARCH

@@ -13,12 +13,14 @@ from config.constants import PROJECT_ROOT, RANDOM_SEED
 
 # Generating CV folds
 
-def generate_folds(cohort_name, paths, num_folds=5, seed=None, pretrain=False):
+def generate_folds(cohort_name, paths, num_folds=5, seed=None, pretrain=False, first_adm_only=False):
 
     effective_seed = seed if seed is not None else RANDOM_SEED
-    save_path = paths["folds_path"] / f"seed_{effective_seed}"
+    suffix = "_firstadm" if first_adm_only else ""
+    save_path = paths["folds_path"] / f"seed_{effective_seed}{suffix}"
 
-    cohort = pd.read_csv(paths["cohort_path"] / f"cohort_{cohort_name}.csv.gz", compression="gzip", usecols=["subject_id", "hadm_id", "label"])
+    usecols = ["subject_id", "hadm_id", "label"] + (["admittime"] if first_adm_only else [])
+    cohort = pd.read_csv(paths["cohort_path"] / f"cohort_{cohort_name}.csv.gz", compression="gzip", usecols=usecols)
     os.makedirs(save_path, exist_ok=True)
     
     #remove admissions without features
@@ -27,6 +29,10 @@ def generate_folds(cohort_name, paths, num_folds=5, seed=None, pretrain=False):
         hadm_with_labs = pd.read_csv(features_file, usecols=["hadm_id"])["hadm_id"].unique()
         cohort = cohort[cohort["hadm_id"].isin(hadm_with_labs)]
             
+    if first_adm_only:
+        
+        cohort = cohort.sort_values("admittime").drop_duplicates("subject_id", keep="first")
+        
     if pretrain or cohort_name == "mimic_all":
 
         subject_ids = cohort[["subject_id", "hadm_id"]].drop_duplicates().sort_values(["subject_id", "hadm_id"]).reset_index(drop=True)
@@ -71,9 +77,11 @@ def generate_folds(cohort_name, paths, num_folds=5, seed=None, pretrain=False):
 
 def load_fold_file(args):
     effective_seed = args.split_seed if args.split_seed is not None else RANDOM_SEED
-    fold_file = args.paths["folds_path"] / f"seed_{effective_seed}" / f"fold_{args.fold}.pkl"
+    first_adm_only = getattr(args, "first_adm_only", False)
+    suffix = "_firstadm" if first_adm_only else ""
+    fold_file = args.paths["folds_path"] / f"seed_{effective_seed}{suffix}" / f"fold_{args.fold}.pkl"
     if not fold_file.exists():
-        generate_folds(args.cohort, args.paths, seed=effective_seed, pretrain=args.train_mode == "pretrain")
+        generate_folds(args.cohort, args.paths, seed=effective_seed, pretrain=args.train_mode == "pretrain", first_adm_only=first_adm_only)
     with open(fold_file, "rb") as f:
         train_ids, val_ids, test_ids = pickle.load(f)
     return train_ids[:, 1], val_ids[:, 1], test_ids[:, 1]
