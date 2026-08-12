@@ -107,15 +107,28 @@ class DTBExtractor(BaseExtractor):
             else:
                 print(f"cohort {D1}-{D2}-{W} has {n_pos} positive and {n_neg} negative. Skipping...")
 
+            unique_patients = cohort.drop_duplicates("subject_id")
+            positive_patients = unique_patients[unique_patients["target_D2_5y"] == 1]
+
             return pd.Series({
                 "n_neg": n_neg,
-                "n_pos": n_pos
+                "n_pos": n_pos,
+                "counts_cohort": len(unique_patients),
+                "female_counts_cohort": int((unique_patients["gender"] == "F").sum()),
+                "AGE_AT_DISEASE_cohort": unique_patients["age"].mean(),
+                "CODE_DIFF_DAYS_cohort": (positive_patients["D2_date"] - positive_patients["D1_date"]).dt.days.mean(),
+                "death_counts_cohort": int(unique_patients["dod"].notna().sum()),
             })
         except:
             return pd.Series({
                 "n_neg": np.nan,
-                "n_pos": np.nan 
-            })  
+                "n_pos": np.nan,
+                "counts_cohort": np.nan,
+                "female_counts_cohort": np.nan,
+                "AGE_AT_DISEASE_cohort": np.nan,
+                "CODE_DIFF_DAYS_cohort": np.nan,
+                "death_counts_cohort": np.nan,
+            })
     
     
     def save_edge_cohort(self, cohort: pd.DataFrame, D1: str, D2: str, W: float):
@@ -125,7 +138,9 @@ class DTBExtractor(BaseExtractor):
     def extract_full_cohort(self, cohort: str) -> pd.DataFrame:
         self.sel_edges = self.select_edges(cohort)
         tqdm.pandas()
-        self.sel_edges[["n_neg", "n_pos"]] = self.sel_edges.progress_apply(self.extract_cohort_from_edge, axis=1)
+        stats_cols = ["n_neg", "n_pos", "counts_cohort", "female_counts_cohort",
+                      "AGE_AT_DISEASE_cohort", "CODE_DIFF_DAYS_cohort", "death_counts_cohort"]
+        self.sel_edges[stats_cols] = self.sel_edges.progress_apply(self.extract_cohort_from_edge, axis=1)
         self.sel_edges.to_csv(self.paths["cohort_path"] / f"selected_edges_{cohort}.csv", index=False)
 
         return self.sel_edges
