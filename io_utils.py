@@ -18,7 +18,7 @@ def set_all_paths(args, out=True):
 
     path_dict = {
         "saved_data_path":    saved_data_path,
-        "cohort_path":        saved_data_path / "cohorts" / extractor,
+        "cohort_path":        saved_data_path / "cohorts" / extractor / "new",
         "features_path":      saved_data_path / "features",
         "folds_path":         saved_data_path / "folds" / cohort,
         "top_features_path":  Path(PROJECT_ROOT) /"data"/ "top_features",
