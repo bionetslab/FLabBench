@@ -13,13 +13,16 @@ def set_all_paths(args, out=True):
     dataset = args.dataset
     cohort = getattr(args, "cohort", "")
     extractor = getattr(args, "extractor", "")
+    days_before_discharge = getattr(args, "days_before_discharge", None)
+    if days_before_discharge is None:
+        days_before_discharge = getattr(args, "days", 14)
 
     saved_data_path = Path(PROJECT_ROOT) / "saved_data"
 
     path_dict = {
         "saved_data_path":    saved_data_path,
-        "cohort_path":        saved_data_path / "cohorts" / extractor / "new",
-        "features_path":      saved_data_path / "features",
+        "cohort_path":        saved_data_path / "cohorts" / extractor /"new",
+        "features_path":      saved_data_path / f"features_{days_before_discharge}d",
         "folds_path":         saved_data_path / "folds" / cohort,
         "top_features_path":  Path(PROJECT_ROOT) /"data"/ "top_features",
         "features_selected_path": saved_data_path / "features_selected_corr",
