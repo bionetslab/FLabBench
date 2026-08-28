@@ -8,10 +8,12 @@ from tqdm import tqdm
 ITEMIDS_TO_REMOVE = [50934, 50947, 51678]
 
 class FeatureExtractor:
-    def __init__(self, mimic_dir, features_base_path, top_features_path=None, days_before_discharge=14):
+    def __init__(self, mimic_dir, features_base_path, top_features_path=None, days_before_discharge=14,
+                 first_adm_only=False):
         self.mimic_dir = Path(mimic_dir)
         self.output_dir = Path(features_base_path)
         self.days = days_before_discharge
+        self.first_adm_only = first_adm_only
         self.top_features = None
         if top_features_path is not None:
             with open(Path(top_features_path) / "mimic_top100_features.pkl", "rb") as f:
@@ -39,6 +41,10 @@ class FeatureExtractor:
 
     def extract(self, cohort_df, cohort_name):
         cohort_df = cohort_df.copy()
+
+        if self.first_adm_only:
+            cohort_df = cohort_df.sort_values("admittime", kind="stable").drop_duplicates("subject_id", keep="first")
+
         cohort_df["dischtime"] = pd.to_datetime(cohort_df["dischtime"])
 
         adms = cohort_df[["subject_id", "hadm_id", "dischtime"]].drop_duplicates("hadm_id")

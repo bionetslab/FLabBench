@@ -28,21 +28,25 @@ def main():
                         help="Days before discharge to extract labs. Default: 14.")
     parser.add_argument("--feature-selection", type=lambda x: x.lower() == "true", default=True,
                         help="Filter to top features before saving.")
+    parser.add_argument("--first-adm-only", action="store_true",
+                        help="Keep only each patient's earliest admission. "
+                             "Writes to features_<days>d_firstadm/.")
     args = parser.parse_args()
 
     mimic_dir = Path(args.data_path) if args.data_path else get_data_path(args.dataset)
     paths = set_all_paths(args, out=False)
 
     if args.cohort == "all":
-        cohort_files = list(paths["cohort_path"].glob("cohort_*.csv.gz"))
+        cohort_files = list(paths["cohort_path"].glob("*.csv.gz"))
     else:
-        cohort_files = [paths["cohort_path"] / f"cohort_{args.cohort}.csv.gz"]
+        cohort_files = [paths["cohort_path"] / f"{args.cohort}.csv.gz"]
 
     extractor = FeatureExtractor(
         mimic_dir=mimic_dir,
         features_base_path=paths["features_path"],
         top_features_path=paths["top_features_path"] if args.feature_selection else None,
         days_before_discharge=args.days,
+        first_adm_only=args.first_adm_only,
     )
 
     for cohort_file in cohort_files:
