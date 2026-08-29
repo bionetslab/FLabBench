@@ -17,7 +17,7 @@ parser.add_argument("--grid", type=str, default="none")
 parser.add_argument("--pretrain", action="store_true", help="Enable pretraining mode")
 parser.add_argument("--feature-selection", type=lambda x: x.lower() == "true", default=True, help="Select top 100 features in MIMIC")
 parser.add_argument("--feature-selection-method", type=str, default="mimic_top_100",
-                     choices=["mimic_top_100", "correlation_top_100", "correlation_fdr", "MRMR_top_100"],
+                     choices=["mimic_top_100", "MRMR_top_100"],
                      help="Which precomputed feature list to use when --feature-selection is true")
 parser.add_argument("--load_ckpt_path", type=str, default=None)
 parser.add_argument("--prefix", type=str, default=None)

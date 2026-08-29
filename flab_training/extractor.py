@@ -17,7 +17,7 @@ class Extractor:
 
     def extract(self):
         
-        cohort_file = Path(self.args.paths["cohort_path"]) / f"cohort_{self.args.cohort}.csv.gz"
+        cohort_file = Path(self.args.paths["cohort_path"]) / f"{self.args.cohort}.csv.gz"
         if not cohort_file.exists():
             raise FileNotFoundError( f"Cohort file not found: {cohort_file}\n")
         cohort_df = pd.read_csv(cohort_file, compression="gzip")

@@ -16,7 +16,7 @@ class TimeSeriesDataset:
 
     def load_data(self):
         # load target cohort
-        self.cohort = pd.read_csv(self.args.paths["cohort_path"] / f"cohort_{self.args.cohort}.csv.gz", compression='gzip')
+        self.cohort = pd.read_csv(self.args.paths["cohort_path"] / f"{self.args.cohort}.csv.gz", compression='gzip')
 
         # load time series data with dtype specifications
         dtype_spec = {
@@ -46,9 +46,22 @@ class TimeSeriesDataset:
             method = getattr(self.args, "feature_selection_method", "mimic_top_100")
             if method == "mimic_top_100":
                 feature_file = self.args.paths["top_features_path"] / 'mimic_top100_features.pkl'
-            else:
-                method_dir = {"correlation_top_100": "top100", "correlation_fdr": "fdr", "MRMR_top_100": "mrmr100"}[method]
+            elif method == "MRMR_top_100":
+                days = getattr(self.args, "days_before_discharge", 14)
+                first_adm_only = getattr(self.args, "first_adm_only", False)
+                method_dir = f"mrmr100_{days}d" + ("_firstadm" if first_adm_only else "")
                 feature_file = self.args.paths["features_selected_path"] / method_dir / self.args.cohort / f"fold_{self.args.fold}" / "selected_itemids.pkl"
+                if not feature_file.exists():
+                    from analysis.corr_feature_selection import CorrFeatureSelector
+                    self.args.logger.write(f'\nNo MRMR selected features available for {self.args.cohort}, Extracting ...')
+                    CorrFeatureSelector(
+                        extractor=self.args.extractor,
+                        mrmr_k=100,
+                        days=days,
+                        first_adm_only=first_adm_only,
+                    ).run([self.args.cohort], fold=self.args.fold)
+            else:
+                raise ValueError(f"Unknown feature selection method: {method}")
             with open(feature_file, 'rb') as f:
                 self.selected_features = list(map(str, pickle.load(f)))
             self.data = self.data[self.data["itemid"].isin(self.selected_features)]

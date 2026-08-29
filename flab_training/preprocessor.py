@@ -51,10 +51,10 @@ class Preprocessor:
             self.input_dict["target"] = self.dataset.y
             
         # pickle dump only if not training in nested crossvalidation
-        if not (self.args.cv_mode == "grid"): #self.args.grid == "nested" and 
-            output_path = Path(self.dataset.args.paths["output_path"]) / "input_dict.pkl"
-            with open(output_path, "wb") as f:
-                pickle.dump(self.input_dict, f)
+        #if not (self.args.cv_mode == "grid"): #self.args.grid == "nested" and
+        #    output_path = Path(self.dataset.args.paths["output_path"]) / "input_dict.pkl"
+        #    with open(output_path, "wb") as f:
+        #        pickle.dump(self.input_dict, f)
 
 
 class PreprocessorA(Preprocessor):

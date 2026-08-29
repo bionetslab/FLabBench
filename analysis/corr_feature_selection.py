@@ -1,6 +1,7 @@
 import argparse
 import pickle
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
@@ -11,45 +12,52 @@ import sys
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from config.constants import PROJECT_ROOT, RANDOM_SEED
+from io_utils import set_all_paths
 
 
 class CorrFeatureSelector:
-    def __init__(self, extractor="DTB", seed=RANDOM_SEED, alpha=0.2, min_count=10, top_k=None, mrmr_k=None, output_dir=None):
+    def __init__(self, extractor="DTB", seed=RANDOM_SEED, alpha=0.2, min_count=10, top_k=None, mrmr_k=None, output_dir=None,
+                 days=14, first_adm_only=False):
         self.extractor = extractor
         self.seed = seed
         self.alpha = alpha
         self.min_count = min_count
         self.top_k = top_k
         self.mrmr_k = mrmr_k
-        self.saved_data_path = Path(PROJECT_ROOT) / "saved_data"
+        self.days = days
+        self.first_adm_only = first_adm_only
         if mrmr_k is not None:
             method_dir = f"mrmr{mrmr_k}"
         elif top_k is not None:
             method_dir = f"top{top_k}"
         else:
             method_dir = "fdr"
-        self.output_dir = Path(output_dir) if output_dir else self.saved_data_path / "features_selected_corr" / method_dir
+        method_dir += f"_{days}d" + ("_firstadm" if first_adm_only else "")
+        self.output_dir = Path(output_dir) if output_dir else self._paths("")["features_selected_path"] / method_dir
+
+    def _paths(self, cohort):
+        return set_all_paths(SimpleNamespace(dataset="", cohort=cohort, extractor=self.extractor,
+                                             days_before_discharge=self.days), out=False)
 
     @classmethod
-    def discover_cohorts(cls, extractor="DTB", saved_data_path=None):
-        saved_data_path = Path(saved_data_path) if saved_data_path else Path(PROJECT_ROOT) / "saved_data"
-        cohort_dir = saved_data_path / "cohorts" / extractor
-        return sorted(
-            p.name.removeprefix("cohort_").removesuffix(".csv.gz")
-            for p in cohort_dir.glob("cohort_*.csv.gz")
-        )
+    def discover_cohorts(cls, extractor="DTB", days=14):
+        cohort_dir = set_all_paths(SimpleNamespace(dataset="", cohort="", extractor=extractor,
+                                                   days_before_discharge=days), out=False)["cohort_path"]
+        return sorted(p.name.removesuffix(".csv.gz") for p in cohort_dir.glob("*.csv.gz"))
 
     def _load_cohort(self, cohort):
+        paths = self._paths(cohort)
         cohort_df = pd.read_csv(
-            self.saved_data_path / "cohorts" / self.extractor / f"cohort_{cohort}.csv.gz",
+            paths["cohort_path"] / f"{cohort}.csv.gz",
             compression="gzip",
             usecols=["hadm_id", "label"],
         )
-        features_df = pd.read_csv(self.saved_data_path / "features" / cohort / "features.csv.gz")
+        features_df = pd.read_csv(paths["features_path"] / cohort / "features.csv.gz")
         return cohort_df, features_df
 
     def _train_hadm_ids(self, cohort, fold):
-        fold_file = self.saved_data_path / "folds" / cohort / f"seed_{self.seed}" / f"fold_{fold}.pkl"
+        suffix = "_firstadm" if self.first_adm_only else ""
+        fold_file = self._paths(cohort)["folds_path"] / f"seed_{self.seed}{suffix}" / f"fold_{fold}.pkl"
         with open(fold_file, "rb") as f:
             train_ids, val_ids, test_ids = pickle.load(f)
         return np.concatenate([train_ids[:, 1], val_ids[:, 1]])
@@ -172,6 +180,10 @@ if __name__ == "__main__":
     parser.add_argument("--top_k", type=int, default=None)
     parser.add_argument("--mrmr_k", type=int, default=None)
     parser.add_argument("--fold", type=int, default=0)
+    parser.add_argument("--days", type=int, default=14)
+    parser.add_argument("--first_adm_only", action="store_true")
+    parser.add_argument("--cohort_list", default=None,
+                        help="File with one cohort name per line. Default: every cohort.")
     parser.add_argument("--no_save", action="store_true")
     args = parser.parse_args()
 
@@ -181,7 +193,12 @@ if __name__ == "__main__":
         alpha=args.alpha,
         top_k=args.top_k,
         mrmr_k=args.mrmr_k,
+        days=args.days,
+        first_adm_only=args.first_adm_only,
     )
-    cohorts = CorrFeatureSelector.discover_cohorts(extractor=args.extractor)
+    if args.cohort_list:
+        cohorts = Path(args.cohort_list).read_text().split()
+    else:
+        cohorts = CorrFeatureSelector.discover_cohorts(extractor=args.extractor, days=args.days)
     summary = selector.run(cohorts, fold=args.fold, save=not args.no_save)
     print(summary)
