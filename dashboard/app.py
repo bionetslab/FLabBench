@@ -3,6 +3,8 @@ import datetime
 import hashlib
 import io
 import json
+import re
+import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import numpy as np
@@ -15,6 +17,12 @@ from plotly.subplots import make_subplots
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 COHORTS_DIR = PROJECT_ROOT / "saved_data" / "cohorts" / "DTB" / "new"
+SAVED_DATA = PROJECT_ROOT / "saved_data"
+
+# `streamlit run` puts dashboard/ on sys.path, not the project root, so the
+# pipeline packages (config, flab_features) are not importable without this.
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 # Must be the first Streamlit call in the script.
 st.set_page_config(page_title="My cohorts", layout="wide")
@@ -669,6 +677,227 @@ if st.button(f"Save {len(reps)} representatives to folder", type="primary"):
 
 with st.expander("Selection provenance"):
     st.json(selection_meta)
+
+
+# --------------------------------------------------------------------------- #
+# Extract lab features for one cohort
+# --------------------------------------------------------------------------- #
+
+st.subheader("Extract features for one cohort")
+
+
+def cohort_csv(cohort_name: str) -> Path | None:
+    """Resolve one cohort's CSV, or None if it does not exist."""
+    candidate = COHORTS_DIR / f"{cohort_name}.csv.gz"
+    return candidate if candidate.exists() else None
+
+
+def features_dir_for(days: int, first_adm_only: bool) -> Path:
+    return SAVED_DATA / (f"features_{days}d" + ("_firstadm" if first_adm_only else ""))
+
+
+@st.cache_data(show_spinner=False)
+def extract_cohort_features(cohort_path: str, cohort_name: str, days: int,
+                            first_adm_only: bool) -> pd.DataFrame:
+    """Run the real FeatureExtractor for one cohort and return what it wrote.
+
+    Same call the pipeline makes, with top_features_path=None - i.e. the
+    `--feature-selection False` the DTB job uses, so the output matches
+    saved_data/features_<days>d/ rather than being a filtered variant of it.
+
+    Cached on the arguments because Streamlit re-runs the script on every widget
+    click and a button press does not survive the next run. A repeat click
+    therefore returns the cached frame instead of re-extracting; the file on
+    disk is already written, so nothing is lost.
+
+    The caller must check labs.parquet exists first: FeatureExtractor builds it
+    in __init__ when missing, which is the hours-long pass over labevents.csv.gz.
+    """
+    from config.constants import get_data_path
+    from flab_features.feature_extractor import FeatureExtractor
+
+    features_dir = features_dir_for(days, first_adm_only)
+    extractor = FeatureExtractor(
+        mimic_dir=get_data_path("MIMIC_IV"),
+        features_base_path=features_dir,
+        top_features_path=None,
+        days_before_discharge=days,
+        first_adm_only=first_adm_only,
+    )
+    extractor.extract(pd.read_csv(cohort_path, compression="gzip"), cohort_name)
+
+    written = features_dir / cohort_name / "features.csv.gz"
+    # extract() returns early without writing when no labs fall in the window.
+    return pd.read_csv(written) if written.exists() else pd.DataFrame()
+
+
+@st.cache_data(show_spinner=False)
+def load_features(path: str, mtime: float) -> pd.DataFrame:
+    """Read an already-extracted features.csv.gz. `mtime` is part of the cache
+    key so a re-extraction is picked up instead of serving the stale frame."""
+    return pd.read_csv(path)
+
+
+def plot_subject_labs(feats: pd.DataFrame, cohort_name: str, days: int):
+    """Lab trajectories for one patient, on days before discharge."""
+    key = f"{cohort_name}_{days}"
+    subjects = sorted(feats["subject_id"].unique())
+
+    p1, p2 = st.columns([1, 3])
+    subject = p1.selectbox(f"Subject ({len(subjects):,} in cohort)", subjects,
+                           key=f"subject_{key}")
+
+    one = feats[feats["subject_id"] == subject]
+    counts = one["itemid"].value_counts()
+    items = p2.multiselect(
+        "Lab itemids", counts.index.tolist(), default=counts.index[:5].tolist(),
+        format_func=lambda i: f"{i} ({counts[i]} values)", key=f"itemids_{key}",
+        help="Ordered by how often each lab was measured for this patient.",
+    )
+    if not items:
+        st.info("Pick at least one itemid to plot.")
+        return
+
+    one = one[one["itemid"].isin(items)].sort_values("minute")
+
+    fig = px.line(
+        one.astype({"itemid": str}).assign(day=one["minute"] / 1440 - days),
+        x="day", y="value", color="itemid", markers=True,
+    )
+    fig.update_layout(
+        title=f"{cohort_name} — subject {subject}",
+        xaxis_title="Days before discharge (0 = discharge)",
+        yaxis_title="Value",
+        xaxis=dict(range=[-days, 1]),
+        width=760,
+        height=420,
+        margin=dict(l=60, r=20, t=45, b=50),
+        font=dict(size=12),
+        legend=dict(title="itemid", itemsizing="constant"),
+    )
+    st.plotly_chart(fig, width="content")
+    st.caption(f"{len(one):,} measurements · units differ per itemid, so the "
+               "y axis is shared but not comparable across labs")
+
+
+def show_features(feats: pd.DataFrame, out_file: Path, cohort_name: str, days: int):
+    """Summary, per-subject lab plot and download for one extracted features table."""
+    if feats.empty:
+        st.warning(
+            f"No labs for **{cohort_name}** in the {days}-day window before "
+            "discharge, so nothing was written."
+        )
+        return
+
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Lab measurements", f"{len(feats):,}")
+    m2.metric("Admissions", f"{feats['hadm_id'].nunique():,}")
+    m3.metric("Distinct itemids", f"{feats['itemid'].nunique():,}")
+    m4.metric("File size", f"{out_file.stat().st_size / 1e6:.1f} MB")
+
+    plot_subject_labs(feats, cohort_name, days)
+
+    st.download_button(
+        "Download features.csv.gz",
+        data=out_file.read_bytes(),
+        file_name=f"{cohort_name}_features_{days}d.csv.gz",
+        mime="application/gzip",
+    )
+
+
+all_cohorts = sorted(df["cohort_name"].dropna().unique())
+
+e1, e2, e3 = st.columns([2, 1, 1])
+cohort_to_extract = e1.selectbox(
+    "Cohort", all_cohorts,
+    help="Type to search. Lists the cohorts in the table selected above.",
+)
+days_before_discharge = e2.number_input(
+    "Days before discharge", min_value=1, max_value=365, value=14, step=1,
+    help="Labs are taken from this many days before discharge up to discharge. "
+         "Writes to saved_data/features_<days>d/.",
+)
+with e3:
+    st.write("")
+    first_adm_only = st.checkbox(
+        "First admissions only",
+        help="Keep each patient's earliest admission only. Writes to "
+             "features_<days>d_firstadm/, so it never overwrites the "
+             "all-admissions features.",
+    )
+
+days_before_discharge = int(days_before_discharge)
+features_dir = features_dir_for(days_before_discharge, first_adm_only)
+labs_parquet = features_dir / "labs.parquet"
+out_file = features_dir / cohort_to_extract / "features.csv.gz"
+src_csv = cohort_csv(cohort_to_extract)
+
+if src_csv is None:
+    st.error(f"No cohort file for **{cohort_to_extract}** in `{COHORTS_DIR}`.")
+    st.stop()
+
+st.caption(f"Source `{src_csv.relative_to(PROJECT_ROOT)}` → target "
+           f"`{out_file.relative_to(PROJECT_ROOT)}`")
+
+if not labs_parquet.exists():
+    # FeatureExtractor.__init__ would rebuild it here: a full pass over the
+    # 2.5 GB labevents.csv.gz that the batch job asks 200 GB of memory for.
+    # Not something to trigger from a dashboard on a login node.
+    # Matched on digits only: `features_*d` also globs features_selected/,
+    # which has its own labs.parquet but no day count in the name.
+    ready = sorted(int(m.group(1)) for m in (
+        re.fullmatch(r"features_(\d+)d", p.parent.name)
+        for p in SAVED_DATA.glob("features_*d/labs.parquet")) if m)
+    st.warning(
+        f"`{features_dir.name}/labs.parquet` does not exist yet. "
+        "Extracting would first rebuild it from the 2.5 GB `labevents.csv.gz` - "
+        "hours of work, and the reason the batch job requests 200 GB. Days "
+        f"already prepared: {', '.join(f'{d}d' for d in ready)}."
+    )
+    st.info(
+        "labs.parquet is the cleaned lab table and does **not** depend on "
+        "`days` - `_clean_lab_events()` never looks at it, which is why every "
+        "features_*d copy is the same file. So link an existing one instead of "
+        "rebuilding:"
+    )
+    st.code(
+        f"mkdir -p {features_dir.relative_to(PROJECT_ROOT)}\n"
+        f"ln -s ../features_{ready[0] if ready else 14}d/labs.parquet "
+        f"{features_dir.relative_to(PROJECT_ROOT)}/labs.parquet",
+        language="bash",
+    )
+    st.stop()
+
+if out_file.exists():
+    stamp = datetime.datetime.fromtimestamp(out_file.stat().st_mtime)
+    st.info(f"Already extracted on {stamp:%Y-%m-%d %H:%M}. Extracting again "
+            "overwrites it.")
+    button_label = f"Re-extract {cohort_to_extract} ({features_dir.name})"
+else:
+    button_label = f"Extract {cohort_to_extract} ({features_dir.name})"
+
+if st.button(button_label, type="primary"):
+    with st.spinner(f"Reading labs for {cohort_to_extract}…"):
+        feats = extract_cohort_features(
+            str(src_csv), cohort_to_extract, days_before_discharge, first_adm_only)
+    st.success(f"Wrote `{out_file.relative_to(PROJECT_ROOT)}`")
+    show_features(feats, out_file, cohort_to_extract, days_before_discharge)
+elif out_file.exists():
+    show_features(load_features(str(out_file), out_file.stat().st_mtime),
+                  out_file, cohort_to_extract, days_before_discharge)
+
+with st.expander("Run this as a batch job instead"):
+    st.write("For many cohorts, or a `days` value whose labs.parquet still has "
+             "to be built, submit it rather than waiting on the dashboard:")
+    st.code(
+        f"python -m flab_features.extract_features \\\n"
+        f"    --extractor DTB --cohort {cohort_to_extract} \\\n"
+        f"    --days {days_before_discharge} --feature-selection False"
+        + (" \\\n    --first-adm-only" if first_adm_only else ""),
+        language="bash",
+    )
+    st.caption("Use `--cohort all` for every cohort. See "
+               "jobs/job_features_dtb.sh for the batch version.")
 
 
 st.subheader("The raw table")
