@@ -197,7 +197,7 @@ class EnvManager:
         outer_dev_ids = np.concatenate([train_ids, val_ids])  # remove test ids
 
         # read cohort file    
-        cohort_file = pd.read_csv(self.args.paths["cohort_path"] / f"cohort_{self.args.cohort}.csv.gz", compression='gzip')
+        cohort_file = pd.read_csv(self.args.paths["cohort_path"] / f"{self.args.cohort}.csv.gz", compression='gzip')
 
         # extract relevant admissions, preserve order
         dev_adms = (

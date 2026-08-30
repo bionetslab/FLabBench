@@ -191,6 +191,7 @@ random_forest:
     class_weight:
     - {0: 1, 1: 1}
     - {0: 1, 1: 2}
+    - balanced
 logistic_regression:
   default:
     C: 0.1
