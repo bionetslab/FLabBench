@@ -10,6 +10,7 @@ from pathlib import Path
 from sklearn.model_selection import StratifiedKFold, train_test_split, GroupShuffleSplit
 from transformers import set_seed as transformers_set_seed
 from config.constants import PROJECT_ROOT, RANDOM_SEED
+from flab_cohorts.utils.split_optimization import generate_optimized_folds
 
 # Generating CV folds
 
@@ -23,11 +24,11 @@ def generate_folds(cohort_name, paths, num_folds=5, seed=None, pretrain=False, f
     cohort = pd.read_csv(paths["cohort_path"] / f"{cohort_name}.csv.gz", compression="gzip", usecols=usecols)
     os.makedirs(save_path, exist_ok=True)
     
-    #remove admissions without features
+    '''#remove admissions without features
     features_file = paths["features_path"] / cohort_name / "features.csv.gz"
     if features_file.exists():
         hadm_with_labs = pd.read_csv(features_file, usecols=["hadm_id"])["hadm_id"].unique()
-        cohort = cohort[cohort["hadm_id"].isin(hadm_with_labs)]
+        cohort = cohort[cohort["hadm_id"].isin(hadm_with_labs)]'''
             
     if first_adm_only:
         
@@ -82,7 +83,15 @@ def load_fold_file(args):
     fold_file = args.paths["folds_path"] / f"seed_{effective_seed}{suffix}" / f"fold_{args.fold}.pkl"
     if not fold_file.exists():
         #generate_folds(args.cohort, args.paths, seed=effective_seed, pretrain=args.train_mode == "pretrain", first_adm_only=first_adm_only)
-        raise FileNotFoundError(f"No fold file: {fold_file}. Generate it with flab_cohorts.utils.split_optimization.")
+        if args.train_mode == "pretrain" or args.cohort == "mimic_all":
+            generate_folds(args.cohort, args.paths, seed=effective_seed, pretrain=True, first_adm_only=first_adm_only)
+        else:
+            generate_optimized_folds(
+                cohorts_dir=args.paths["cohort_path"],
+                folds_dir=args.paths["folds_path"].parent,
+                seed=effective_seed,
+                first_adm_only=first_adm_only,
+            )
     with open(fold_file, "rb") as f:
         train_ids, val_ids, test_ids = pickle.load(f)
     return train_ids[:, 1], val_ids[:, 1], test_ids[:, 1]
