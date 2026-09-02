@@ -3,7 +3,6 @@ import datetime
 import hashlib
 import io
 import json
-import re
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
@@ -828,7 +827,7 @@ with e3:
 
 days_before_discharge = int(days_before_discharge)
 features_dir = features_dir_for(days_before_discharge, first_adm_only)
-labs_parquet = features_dir / "labs.parquet"
+labs_parquet = SAVED_DATA / "labs.parquet"
 out_file = features_dir / cohort_to_extract / "features.csv.gz"
 src_csv = cohort_csv(cohort_to_extract)
 
@@ -840,31 +839,13 @@ st.caption(f"Source `{src_csv.relative_to(PROJECT_ROOT)}` → target "
            f"`{out_file.relative_to(PROJECT_ROOT)}`")
 
 if not labs_parquet.exists():
-    # FeatureExtractor.__init__ would rebuild it here: a full pass over the
+    # FeatureExtractor.__init__ would build it here: a full pass over the
     # 2.5 GB labevents.csv.gz that the batch job asks 200 GB of memory for.
     # Not something to trigger from a dashboard on a login node.
-    # Matched on digits only: `features_*d` also globs features_selected/,
-    # which has its own labs.parquet but no day count in the name.
-    ready = sorted(int(m.group(1)) for m in (
-        re.fullmatch(r"features_(\d+)d", p.parent.name)
-        for p in SAVED_DATA.glob("features_*d/labs.parquet")) if m)
     st.warning(
-        f"`{features_dir.name}/labs.parquet` does not exist yet. "
-        "Extracting would first rebuild it from the 2.5 GB `labevents.csv.gz` - "
-        "hours of work, and the reason the batch job requests 200 GB. Days "
-        f"already prepared: {', '.join(f'{d}d' for d in ready)}."
-    )
-    st.info(
-        "labs.parquet is the cleaned lab table and does **not** depend on "
-        "`days` - `_clean_lab_events()` never looks at it, which is why every "
-        "features_*d copy is the same file. So link an existing one instead of "
-        "rebuilding:"
-    )
-    st.code(
-        f"mkdir -p {features_dir.relative_to(PROJECT_ROOT)}\n"
-        f"ln -s ../features_{ready[0] if ready else 14}d/labs.parquet "
-        f"{features_dir.relative_to(PROJECT_ROOT)}/labs.parquet",
-        language="bash",
+        "`labs.parquet` does not exist yet. Extracting would first build it "
+        "from the 2.5 GB `labevents.csv.gz` - hours of work, and the reason "
+        "the batch job requests 200 GB."
     )
     st.stop()
 

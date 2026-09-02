@@ -35,6 +35,7 @@ parser.add_argument("--impute", type=str, default="fill")
 parser.add_argument("--variant", type=str, default="VMD")
 parser.add_argument("--extractor", type=str, default="DTB")
 parser.add_argument("--first_adm_only", action="store_true", help="Keep only the first admission per patient")
+parser.add_argument("--oversampling", type=str, default=None, choices=["minority"], help="Oversampling strategy for ML model training")
 args = parser.parse_args()
 
 # GRID SEARCH

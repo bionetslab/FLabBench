@@ -614,3 +614,77 @@ class PreprocessorML(Preprocessor):
         self.args.logger.write('ML flat matrix prepared.')
 
 
+class PreprocessorMLStats(PreprocessorML):
+
+    STATS = ["mean", "std", "min", "max", "last", "count"]
+
+    def trim(self): # original trim bin doesn't clip so we migh have partial bins but here I merge the partial bin to the last full bin
+        PreprocessorML.trim(self)
+        self.args.T = int(np.ceil(self.args.days_before_discharge * 24 / self.args.agg_int))
+        self.data["int"] = self.data["int"].clip(upper=self.args.T - 1)
+        self.args.logger.write('Stats binning from agg_int: '+str(self.args.T)+' bins of '+str(self.args.agg_int/24)+' days')
+
+    def prepare_inputs(self):
+        self.set_variables()
+        self.trim()
+
+
+        '''n_bins = getattr(self.args, "ml_stats_bins", 1)
+        window_minutes = self.args.days_before_discharge * 24 * 60
+        bin_width = window_minutes / n_bins
+        self.data = self.data.assign(
+            stat_bin=np.minimum((self.data["minute"] // bin_width).astype(int), n_bins - 1)
+        )
+        self.args.logger.write('\nStats binning from ml_stats_bins: '+str(n_bins)+' bins of '+str(bin_width/1440)+' days')'''
+
+        g = self.data.sort_values("minute").groupby(["ts_ind", "var_ind", "int"])["value"]
+        stat_df = g.agg(["mean", "std", "min", "max", "count"])
+        stat_df["last"] = g.last()
+        stat_df = stat_df.reset_index()
+
+        normed = {}
+        filled_means = {}
+        for b in range(self.args.T):
+            bin_df = stat_df[stat_df["int"] == b]
+            for stat in self.STATS:
+                m = bin_df.pivot(index="ts_ind", columns="var_ind", values=stat)
+                m = m.reindex(index=np.arange(self.args.N), columns=np.arange(self.args.V))
+                m = m.to_numpy(dtype=float)
+
+                if stat == "count":
+                    m = np.nan_to_num(m, nan=0.0)
+
+                col_mean = np.nanmean(m[self.train_ind], axis=0)
+                col_mean = np.nan_to_num(col_mean, nan=0.0)
+                col_std = np.nanstd(m[self.train_ind], axis=0)
+                col_std = np.where(np.isnan(col_std) | (col_std == 0), 1.0, col_std)
+                filled = np.where(np.isnan(m), col_mean, m)
+                normed[(b, stat)] = (filled - col_mean) / col_std
+
+                if stat == "mean":
+                    filled_means[b] = filled
+
+        blocks = [normed[(b, stat)] for b in range(self.args.T) for stat in self.STATS]
+        block_names = [f"{v}_{stat}_bin{b}" for b in range(self.args.T) for stat in self.STATS for v in self.variables]
+
+        '''if self.args.T > 1: #add across bins features 
+            bin_means_stack = np.stack([filled_means[b] for b in range(self.args.T)], axis=0)
+            bin_range = bin_means_stack.max(axis=0) - bin_means_stack.min(axis=0)
+            col_mean = np.nanmean(bin_range[self.train_ind], axis=0)
+            col_mean = np.nan_to_num(col_mean, nan=0.0)
+            col_std = np.nanstd(bin_range[self.train_ind], axis=0)
+            col_std = np.where(np.isnan(col_std) | (col_std == 0), 1.0, col_std)
+            normed_bin_range = (bin_range - col_mean) / col_std
+            blocks.append(normed_bin_range)
+            block_names += [f"{v}_bin_range" for v in self.variables]
+            self.args.logger.write(f'Between-bin variability features added: {len(self.variables)}')'''
+            
+
+        X_ts = np.concatenate(blocks, axis=1)
+        X = np.concatenate([X_ts, self.dataset.demo], axis=1)
+
+        feature_names = block_names + list(self.dataset.static_data.columns)
+
+        self.input_dict = {"X_flat": pd.DataFrame(X, columns=feature_names)}
+        self.input_dict["feature_names"] = feature_names
+        self.args.logger.write(f'ML stats matrix prepared ({self.args.T} bin(s)). Shape: {X.shape}')

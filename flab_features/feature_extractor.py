@@ -19,7 +19,7 @@ class FeatureExtractor:
             with open(Path(top_features_path) / "mimic_top100_features.pkl", "rb") as f:
                 self.top_features = set(int(x) for x in pickle.load(f))
             print(f"Top features filter applied: {len(self.top_features)} itemids")
-        self.labs_parquet = self.output_dir / "labs.parquet"
+        self.labs_parquet = self.output_dir.parent / "labs.parquet"
         if not self.labs_parquet.exists():
             print("Cleaning raw lab_events")
             self._clean_lab_events()

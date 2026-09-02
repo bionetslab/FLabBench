@@ -18,7 +18,7 @@ global:
 
 tcn:
   default:
-    variant: "VMD"
+    #variant: "VMD"
     hid_dim: 128
     num_layers: 6
     dropout: 0.2
@@ -29,7 +29,7 @@ tcn:
     pos_class_weight: 0
 
   grid_search:
-    variant: ["VMD"]
+    #variant: ["VMD"]
     hid_dim: [64, 128]
     num_layers: [4, 6]
     dropout: [0.2, 0.3]
@@ -41,7 +41,7 @@ tcn:
 
 gru:
   default:
-    variant: "VMD"
+    #variant: "VMD"
     hid_dim: 128
     num_layers: 1
     dropout: 0.2
@@ -51,7 +51,7 @@ gru:
     pos_class_weight: 0
 
   grid_search:
-    variant: ["VMD"]
+    #variant: ["VMD"]
     hid_dim: [64, 128]
     num_layers: [1, 2]
     dropout: [0.2, 0.3]
@@ -62,7 +62,7 @@ gru:
 
 lstm:
   default:
-    variant: "VMD"
+    #variant: "VMD"
     hid_dim: 128
     num_layers: 1
     dropout: 0.2
@@ -72,7 +72,7 @@ lstm:
     pos_class_weight: 0
 
   grid_search:
-    variant: ["VMD"]
+    #variant: ["VMD"]
     hid_dim: [64, 128]
     num_layers: [1, 2]
     dropout: [0.2, 0.3]
@@ -83,7 +83,7 @@ lstm:
     
 sand:
   default:
-    variant: "VMD"
+    #variant: "VMD"
     hid_dim: 128
     num_layers: 4
     dropout: 0.2 
@@ -96,7 +96,7 @@ sand:
     pos_class_weight: 0
 
   grid_search:
-    variant: ["VMD"]
+    #variant: ["VMD"]
     hid_dim: [64, 128]
     num_layers: [4]
     dropout: [0.2, 0.3]
@@ -165,7 +165,7 @@ strats:
 
 mlp:
   grid_search:
-    variant: ["VMD"]
+    #variant: ["VMD"]
     hid_dims: [[64], [128], [128, 64], [256, 128]]
     dropout: [0.2, 0.3]
     lr: [1e-4, 5e-4]
@@ -178,11 +178,11 @@ random_forest:
     n_estimators: 150
     max_depth: 10
     min_samples_split: 5
-    variant: VMD
+    #variant: VMD
     impute: fill
     feature_combination_method: concatenate
   grid_search:
-    variant: [VMD] # Only with concatenate
+    #variant: [VMD] # Only with concatenate
     impute: [fill]
     feature_combination_method: [concatenate]
     n_estimators: [100, 200,250]
@@ -197,11 +197,11 @@ logistic_regression:
     C: 0.1
     penalty: l2
     max_iter: 2000
-    variant: VMD
+    #variant: VMD
     impute: fill
     feature_combination_method: concatenate
   grid_search:
-    variant: [VMD]
+    #variant: [VMD]
     impute: [fill]
     feature_combination_method: [aggregate, concatenate]
     C: [0.01, 0.1, 1]
@@ -210,14 +210,14 @@ logistic_regression:
 
 gradient_boosting:
   default:
-    variant: VMD
+    #variant: VMD
     impute: fill
     feature_combination_method: concatenate
     learning_rate: 0.1
     max_iter: 200
     max_depth: 5
   grid_search:
-    variant: [VMD]
+    #variant: [VMD]
     impute: [fill]
     feature_combination_method: [concatenate]
     learning_rate: [0.01, 0.1]
@@ -226,7 +226,7 @@ gradient_boosting:
 
 xgboost:
   default:
-    variant: VMD
+    #variant: VMD
     impute: fill
     feature_combination_method: concatenate
     learning_rate: 0.1
@@ -234,7 +234,7 @@ xgboost:
     n_estimators: 200
     scale_pos_weight: 2
   grid_search:
-    variant: [VMD]
+    #variant: [VMD]
     impute: [fill]
     feature_combination_method: [concatenate]
     learning_rate: [0.01, 0.1]
@@ -244,7 +244,7 @@ xgboost:
 
 catboost:
   default:
-    variant: VMD
+    #variant: VMD
     impute: fill
     feature_combination_method: concatenate
     learning_rate: 0.1
@@ -253,7 +253,7 @@ catboost:
     allow_writing_files: false
     verbose: false
   grid_search:
-    variant: [VMD]
+    #variant: [VMD]
     impute: [fill]
     feature_combination_method: [concatenate]
     learning_rate: [0.03, 0.1]
