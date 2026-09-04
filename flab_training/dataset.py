@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import pickle
 from flab_training.utils import safe_pos_freq, remove_features_not_in_train, compute_lab_frequency, ids_in_data, set_splits, compute_class_weight
-from flab_training.preprocessor import PreprocessorA, PreprocessorB, PreprocessorC_sup, PreprocessorC_unsup, PreprocessorD_unsup, PreprocessorD_sup, PreprocessorML, PreprocessorMLStats
+from flab_training.preprocessor import PreprocessorA, PreprocessorB, PreprocessorC_sup, PreprocessorC_unsup, PreprocessorD_unsup, PreprocessorD_sup, PreprocessorML, PreprocessorMLStats, PreprocessorStats
 
 
 class TimeSeriesDataset:
@@ -151,7 +151,9 @@ class TimeSeriesDataset:
         # get processor based on model
         model_type = self.args.model_type
         train_ind = self.splits['train']
-        if model_type in ['gru', 'lstm', 'tcn', 'sand', 'mlp']:
+        if self.args.variant == "stats":
+            self.preproc = PreprocessorStats(self)
+        elif model_type in ['gru', 'lstm', 'tcn', 'sand', 'mlp']:
             self.preproc = PreprocessorA(self)
         elif model_type in ['grud', 'interpnet']:
             self.preproc = PreprocessorB(self)
@@ -164,8 +166,6 @@ class TimeSeriesDataset:
             self.preproc = PreprocessorD_unsup(self)
         elif model_type in ['emit'] and self.args.train_mode != "pretrain":
             self.preproc = PreprocessorD_sup(self)
-        elif model_type in ['random_forest', 'logistic_regression', 'gradient_boosting', 'xgboost', 'catboost'] and self.args.variant == "stats":
-            self.preproc = PreprocessorMLStats(self)
         elif model_type in ['random_forest', 'logistic_regression', 'gradient_boosting', 'xgboost', 'catboost']:
             self.preproc = PreprocessorML(self)
             

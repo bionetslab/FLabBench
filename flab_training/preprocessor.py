@@ -519,7 +519,7 @@ class PreprocessorD_sup(PreprocessorD):  # EMIT supervised (finetuning)
 
 
 
-class PreprocessorML(Preprocessor):
+'''class PreprocessorML(Preprocessor):
 
     def get_feature_names(self, variant):
         vars = self.variables
@@ -601,17 +601,52 @@ class PreprocessorML(Preprocessor):
             
 
         X = np.concatenate([X_flat_ts, self.dataset.demo], axis=1) # Demo raw or normalized?
-        '''if self.args.model_type == 'logistic_regression':
-            from sklearn.preprocessing import StandardScaler
-            scaler = StandardScaler()
-            scaler.fit(X[self.train_ind])
-            X = scaler.transform(X)'''
+        #if self.args.model_type == 'logistic_regression':
+        #    from sklearn.preprocessing import StandardScaler
+        #    scaler = StandardScaler()
+        #    scaler.fit(X[self.train_ind])
+        #    X = scaler.transform(X)
 
 
         feature_names = self.get_feature_names(variant)
         self.input_dict["X_flat"] = pd.DataFrame(X, columns=feature_names)
         self.input_dict["feature_names"] = feature_names
-        self.args.logger.write('ML flat matrix prepared.')
+        self.args.logger.write('ML flat matrix prepared. OLD')'''
+
+
+class PreprocessorML(PreprocessorA): # same as A only we flatten the input
+
+    def get_feature_names(self, variant):
+        vars = self.variables
+        T = self.args.T
+        per_t = []
+        if "V" in variant:
+            per_t += [f"{v}_V" for v in vars]
+        if "M" in variant:
+            per_t += [f"{v}_M" for v in vars]
+        if "D" in variant:
+            per_t += [f"{v}_D" for v in vars]
+        if self.args.feature_combination_method == "concatenate":
+            ts_cols = [f"{col}_Bin{t}" for t in range(T) for col in per_t]
+        else:
+            ts_cols = per_t
+        demo_cols = list(self.dataset.static_data.columns)
+        return ts_cols + demo_cols
+
+    def flatten(self, X_3d):
+        if self.args.feature_combination_method == "concatenate":
+            X_flat_ts = X_3d.reshape(X_3d.shape[0], -1)
+        else:
+            X_flat_ts = X_3d.mean(axis=1)
+        return np.concatenate([X_flat_ts, self.dataset.demo], axis=1)
+
+    def prepare_inputs(self):
+        PreprocessorA.prepare_inputs(self)
+        X = self.flatten(self.input_dict.pop("X"))
+        feature_names = self.get_feature_names(self.args.variant)
+        self.input_dict["X_flat"] = pd.DataFrame(X, columns=feature_names)
+        self.input_dict["feature_names"] = feature_names
+        self.args.logger.write('ML flat matrix prepared. USING new ML PREPROCESSOR')
 
 
 class PreprocessorMLStats(PreprocessorML):
@@ -622,7 +657,7 @@ class PreprocessorMLStats(PreprocessorML):
         PreprocessorML.trim(self)
         self.args.T = int(np.ceil(self.args.days_before_discharge * 24 / self.args.agg_int))
         self.data["int"] = self.data["int"].clip(upper=self.args.T - 1)
-        self.args.logger.write('Stats binning from agg_int: '+str(self.args.T)+' bins of '+str(self.args.agg_int/24)+' days')
+        self.args.logger.write('PreprocessorMLStats: Stats binning from agg_int: '+str(self.args.T)+' bins of '+str(self.args.agg_int/24)+' days')
 
     def prepare_inputs(self):
         self.set_variables()
@@ -667,7 +702,7 @@ class PreprocessorMLStats(PreprocessorML):
         blocks = [normed[(b, stat)] for b in range(self.args.T) for stat in self.STATS]
         block_names = [f"{v}_{stat}_bin{b}" for b in range(self.args.T) for stat in self.STATS for v in self.variables]
 
-        '''if self.args.T > 1: #add across bins features 
+        if self.args.T > 1: #add across bins features 
             bin_means_stack = np.stack([filled_means[b] for b in range(self.args.T)], axis=0)
             bin_range = bin_means_stack.max(axis=0) - bin_means_stack.min(axis=0)
             col_mean = np.nanmean(bin_range[self.train_ind], axis=0)
@@ -677,7 +712,7 @@ class PreprocessorMLStats(PreprocessorML):
             normed_bin_range = (bin_range - col_mean) / col_std
             blocks.append(normed_bin_range)
             block_names += [f"{v}_bin_range" for v in self.variables]
-            self.args.logger.write(f'Between-bin variability features added: {len(self.variables)}')'''
+            self.args.logger.write(f'Between-bin variability features added: {len(self.variables)}')
             
 
         X_ts = np.concatenate(blocks, axis=1)
@@ -688,3 +723,62 @@ class PreprocessorMLStats(PreprocessorML):
         self.input_dict = {"X_flat": pd.DataFrame(X, columns=feature_names)}
         self.input_dict["feature_names"] = feature_names
         self.args.logger.write(f'ML stats matrix prepared ({self.args.T} bin(s)). Shape: {X.shape}')
+
+
+class PreprocessorStats(PreprocessorML):
+
+    ML_MODELS = ['random_forest', 'logistic_regression', 'gradient_boosting', 'xgboost', 'catboost']
+    STATS = ["mean", "std", "min", "max", "last", "count"]
+
+    def trim(self): 
+        PreprocessorA.trim(self)
+        self.args.T = int(np.ceil(self.args.days_before_discharge * 24 / self.args.agg_int))
+        self.data["int"] = self.data["int"].clip(upper=self.args.T - 1)
+        self.args.logger.write('ML TRIM: Stats binning from agg_int: '+str(self.args.T)+' bins of '+str(self.args.agg_int/24)+' days')
+
+    def stat_blocks(self):
+        g = self.data.sort_values("minute").groupby(["ts_ind", "var_ind", "int"])["value"]
+        stat_df = g.agg(["mean", "std", "min", "max", "count"])
+        stat_df["last"] = g.last()
+        stat_df = stat_df.reset_index()
+
+        normed = {}
+        for b in range(self.args.T):
+            bin_df = stat_df[stat_df["int"] == b]
+            for stat in self.STATS:
+                m = bin_df.pivot(index="ts_ind", columns="var_ind", values=stat)
+                m = m.reindex(index=np.arange(self.args.N), columns=np.arange(self.args.V))
+                m = m.to_numpy(dtype=float)
+
+                if stat == "count":
+                    m = np.nan_to_num(m, nan=0.0)
+
+                col_mean = np.nanmean(m[self.train_ind], axis=0)
+                col_mean = np.nan_to_num(col_mean, nan=0.0)
+                col_std = np.nanstd(m[self.train_ind], axis=0)
+                col_std = np.where(np.isnan(col_std) | (col_std == 0), 1.0, col_std)
+                filled = np.where(np.isnan(m), col_mean, m)
+                normed[(b, stat)] = (filled - col_mean) / col_std
+        return normed
+
+    def get_feature_names(self, variant):
+        ts_cols = [f"{v}_{stat}_bin{b}" for b in range(self.args.T) for stat in self.STATS for v in self.variables]
+        return ts_cols + list(self.dataset.static_data.columns)
+
+    def prepare_inputs(self):
+        self.set_variables()
+        self.trim()
+        normed = self.stat_blocks()
+        #self.args.logger.write("ohne ML trim")
+        X_3d = np.stack([np.concatenate([normed[(b, stat)] for stat in self.STATS], axis=1) for b in range(self.args.T)], axis=1)
+
+        if self.args.model_type in self.ML_MODELS:
+            X = np.concatenate([X_3d.reshape(X_3d.shape[0], -1), self.dataset.demo], axis=1)
+            feature_names = self.get_feature_names(self.args.variant)
+            self.input_dict = {"X_flat": pd.DataFrame(X, columns=feature_names)}
+            self.input_dict["feature_names"] = feature_names
+            self.args.logger.write(f'PreprocessorStats: ML stats matrix prepared ({self.args.T} bin(s)). Shape: {X.shape}')
+        else:
+            self.X = X_3d
+            self.input_dict = {"X": X_3d}
+            self.args.logger.write(f'PreprocessorStats: TS stats matrix prepared ({self.args.T} bin(s)). Shape: {X_3d.shape}')

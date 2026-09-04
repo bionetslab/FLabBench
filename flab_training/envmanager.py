@@ -251,7 +251,7 @@ class EnvManager:
             self.args.logger.write(f"Trial {trial.number + 1} mean auroc: {mean_auroc:.4f} | mean epoch: {mean_epoch:.1f}")
             return mean_auroc
 
-        study = optuna.create_study(direction="maximize")
+        study = optuna.create_study(direction="maximize", sampler=optuna.samplers.TPESampler(seed=self.args.seed))
         study.optimize(objective, n_trials=n_trials)
 
         best_trial = study.best_trial
