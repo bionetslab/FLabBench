@@ -65,7 +65,7 @@ class TimeSeriesDataset:
             with open(feature_file, 'rb') as f:
                 self.selected_features = list(map(str, pickle.load(f)))
             self.data = self.data[self.data["itemid"].isin(self.selected_features)]
-            self.args.logger.write(f'\nFeature selected from {method} file: ' + str(len(self.selected_features)))
+            self.args.logger.write(f'\nFeature selection {method}: {self.data.itemid.nunique()}/{len(self.selected_features)} listed features present in data')
             
         # remove features not present in training data
         self.data = remove_features_not_in_train(self.data, self.args.ids["train"], self.args.logger)
@@ -142,9 +142,16 @@ class TimeSeriesDataset:
 
             self.args.pos_class_weight = compute_class_weight(train_pos_freq, self.args.pos_class_weight, self.args.stratify_batch, self.args.train_batch_size)
 
-            self.args.logger.write('\npos class weight: ' + str(round(self.args.pos_class_weight, 2)))
-            self.args.logger.write('% pos class in train, val, test splits: ' + 
-                                str([round(x, 3) for x in [train_pos_freq, val_pos_freq, test_pos_freq]]))
+            self.args.logger.write('\nClass balance:')
+            for split, pos_freq in [('train', train_pos_freq), ('val', val_pos_freq), ('test', test_pos_freq)]:
+                n_samples = len(self.splits[split])
+                if n_samples == 0:
+                    self.args.logger.write(f'  {split:<5}: split is empty (0 samples)', show_time=False)
+                else:
+                    n_pos = int(self.y[self.splits[split]].sum())
+                    self.args.logger.write(f'  {split:<5}: {n_pos} of {n_samples} samples are positive ({pos_freq:.1%})', show_time=False)
+            self.args.logger.write(f'  positive class weight: {self.args.pos_class_weight:.2f} -> one positive counts '
+                                   f'as much as {self.args.pos_class_weight:.2f} negatives', show_time=False)
 
 
     def preprocess_data(self):
@@ -172,6 +179,10 @@ class TimeSeriesDataset:
             
         else:
             raise ValueError(f"Unknown model type: {model_type}")
+        
+        self.args.logger.write('\n Start Data discretization')
+        self.args.logger.write(f'\nPreprocessor: {type(self.preproc).__name__} ' f'(model {model_type}, variant {self.args.variant})')
+        
         # preprocess data accordingly
         self.preproc.prepare_inputs()
         # save input dict

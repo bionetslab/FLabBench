@@ -105,17 +105,20 @@ class EnvManager:
         if mode == "default":
             train_ids, val_ids, test_ids = load_fold_file(self.args)
             ids_dict = {"train": train_ids, "val": val_ids, "test": test_ids}
+            ids_desc = f"train / val / test of outer fold {self.args.fold}, as stored in the fold file"
         # final training concatenating train and val
         elif mode == "final":       
             train_ids, val_ids, test_ids = load_fold_file(self.args) 
             ids_dict = {"train": np.concatenate([train_ids, val_ids]), "val": np.array([]), "test": test_ids}       
+            ids_desc = f"train+val of outer fold {self.args.fold} merged into train, no val (no early stopping), test of outer fold {self.args.fold}"
         # pass inner fold grid ids
         elif mode == "grid" and inner_fold is not None:
             self.args.inner_fold = inner_fold
             ids_dict = self.ids_grid_list[inner_fold]
+            ids_desc = f"inner fold {inner_fold+1}/{len(self.ids_grid_list)} (StratifiedGroupKFold over train+val of outer fold {self.args.fold}), no test"
         # use custom ids
         elif mode == "custom" and ids_dict is not None:
-            pass
+            ids_desc = "ids passed in directly by the caller (optuna trial)"
         else:
             raise ValueError("Provide a correct mode and a valid dict id.")
 
@@ -125,7 +128,7 @@ class EnvManager:
             
         self.args.cv_mode = mode
         self.args.ids = ids_dict
-        self.args.logger.write(f'{mode} fold ids used.')
+        self.args.logger.write(f'Ids mode "{mode}": {ids_desc}')
         self.args.logger.write(f"\n# train, val, test TS LOADED: {len(ids_dict['train'])}, {len(ids_dict['val'])}, {len(ids_dict['test'])}")
 
 
@@ -171,6 +174,13 @@ class EnvManager:
         self.args.logger.write(f"\n{'#'*50} START {'#'*50}")
         self.args.logger.write('Global environment loaded')
         self.args.logger.write(f'Training in {self.args.train_mode} mode on {self.args.device}')
+        self.args.logger.write(f'Training setup: First admissions only {self.args.first_adm_only}')
+        self.args.logger.write(f'Training setup: Fold {self.args.fold} Grid {self.args.grid}')
+        self.args.logger.write(f'Training setup: Cohort {self.args.cohort} Features {self.args.variant} {self.args.days_before_discharge} agg {self.args.agg_int}')
+        self.args.logger.write(f'Training setup: Features {self.args.variant} {self.args.days_before_discharge} agg {self.args.agg_int} oversampling {self.args.oversampling} impute {self.args.impute}')
+        self.args.logger.write(f'Training setup: config file {self.args.config_path}')
+        self.args.logger.write(f'Training setup: prefix {self.args.prefix}')
+        self.args.logger.write(f"\n{'#'*100}")
 
     def set_stratify_batch(self):
         # if task is very unbalanced (NF) > stratify batch
@@ -352,6 +362,8 @@ class EnvManager:
         # GRID SEARCH > NESTED CROSSVALIDATION
         if self.args.grid == "nested":
 
+            self.args.logger.write(f"\n{'#'*30} GRID SEARCH STARTED (nested, search={self.args.search}, outer fold {self.args.fold}) {'#'*30}")
+
             grid_file = Path(self.args.paths["output_path"]) / "grid_results.csv"
             if grid_file.exists():
                 grid_file.unlink()
@@ -374,8 +386,7 @@ class EnvManager:
                 for i, _ in enumerate(self.ids_grid_list):
                     for p, params in enumerate(self.param_grid_list):
                         self.args.logger.write(f"\n{'='*50}")
-                        self.args.logger.write(f"INNER FOLD {i+1}/{n_folds} | PARAM COMBO {p+1}/{n_params}")
-                        self.args.logger.write(f"Params: {params}")
+                        self.args.logger.write(f"OUTER FOLD {self.args.fold} | INNER FOLD {i+1}/{n_folds} | PARAM COMBO {p+1}/{n_params}")
 
                         self.set_model_params(mode="grid", param_ind=p)
                         self.set_ids(mode="grid", inner_fold=i)
@@ -389,6 +400,8 @@ class EnvManager:
             
         # GRID SEARCH > SIMPLE CROSSVALIDATION
         elif self.args.grid == "simple":
+
+            self.args.logger.write(f"\n{'#'*30} GRID SEARCH STARTED (simple, outer fold {self.args.fold}) {'#'*30}")
 
             # get all inner folds and parameter combinations
             self.get_param_grid_list()

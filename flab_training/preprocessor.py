@@ -65,8 +65,7 @@ class PreprocessorA(Preprocessor):
         self.data = self.data.sort_values("minute")
         self.data['int'] = (self.data['minute'] // (60 * self.args.agg_int)).astype(int)
         self.args.T = self.data.int.max() + 1
-        self.args.logger.write('\nData discretised')
-        self.args.logger.write('# intervals: '+str(self.args.T))
+        self.args.logger.write(f'Time bins: {self.args.T} x {self.args.agg_int/24:.1f} days (from the observed data range)')
 
     def normalise(self):
         self.means, self.stds = self.compute_means_stds()
@@ -657,7 +656,8 @@ class PreprocessorMLStats(PreprocessorML):
         PreprocessorML.trim(self)
         self.args.T = int(np.ceil(self.args.days_before_discharge * 24 / self.args.agg_int))
         self.data["int"] = self.data["int"].clip(upper=self.args.T - 1)
-        self.args.logger.write('PreprocessorMLStats: Stats binning from agg_int: '+str(self.args.T)+' bins of '+str(self.args.agg_int/24)+' days')
+        self.args.logger.write(f'Time bins clipped to {self.args.T} x {self.args.agg_int/24:.1f} days, '
+                               f'covering the {self.args.days_before_discharge} days before discharge')
 
     def prepare_inputs(self):
         self.set_variables()
@@ -734,7 +734,8 @@ class PreprocessorStats(PreprocessorML):
         PreprocessorA.trim(self)
         self.args.T = int(np.ceil(self.args.days_before_discharge * 24 / self.args.agg_int))
         self.data["int"] = self.data["int"].clip(upper=self.args.T - 1)
-        self.args.logger.write('ML TRIM: Stats binning from agg_int: '+str(self.args.T)+' bins of '+str(self.args.agg_int/24)+' days')
+        self.args.logger.write(f'Time bins clipped to {self.args.T} x {self.args.agg_int/24:.1f} days, '
+                               f'covering the {self.args.days_before_discharge} days before discharge')
 
     def stat_blocks(self):
         g = self.data.sort_values("minute").groupby(["ts_ind", "var_ind", "int"])["value"]
@@ -777,7 +778,9 @@ class PreprocessorStats(PreprocessorML):
             feature_names = self.get_feature_names(self.args.variant)
             self.input_dict = {"X_flat": pd.DataFrame(X, columns=feature_names)}
             self.input_dict["feature_names"] = feature_names
-            self.args.logger.write(f'PreprocessorStats: ML stats matrix prepared ({self.args.T} bin(s)). Shape: {X.shape}')
+            self.args.logger.write(f'Feature matrix: {X.shape[0]} samples x {X.shape[1]} features = '
+                                   f'{self.args.V} variables x {len(self.STATS)} stats x {self.args.T} bins '
+                                   f'+ {self.dataset.demo.shape[1]} static')
         else:
             self.X = X_3d
             self.input_dict = {"X": X_3d}

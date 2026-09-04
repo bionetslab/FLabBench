@@ -82,18 +82,28 @@ def load_fold_file(args):
     suffix = "_firstadm" if first_adm_only else ""
     fold_file = args.paths["folds_path"] / f"seed_{effective_seed}{suffix}" / f"fold_{args.fold}.pkl"
     if not fold_file.exists():
+        args.logger.write(f'\nFold file NOT found: {fold_file}')
         #generate_folds(args.cohort, args.paths, seed=effective_seed, pretrain=args.train_mode == "pretrain", first_adm_only=first_adm_only)
         if args.train_mode == "pretrain" or args.cohort == "mimic_all":
+            args.logger.write(f'Generating GroupShuffleSplit folds (generate_folds, pretrain=True, seed={effective_seed}, first_adm_only={first_adm_only})')
             generate_folds(args.cohort, args.paths, seed=effective_seed, pretrain=True, first_adm_only=first_adm_only)
         else:
+            args.logger.write(f'Generating OPTIMIZED folds (generate_optimized_folds, seed={effective_seed}, first_adm_only={first_adm_only}) - this rewrites fold files for ALL cohorts')
             generate_optimized_folds(
                 cohorts_dir=args.paths["cohort_path"],
                 folds_dir=args.paths["folds_path"].parent,
                 seed=effective_seed,
                 first_adm_only=first_adm_only,
             )
+        args.logger.write(f'Folds generated: {fold_file}')
     with open(fold_file, "rb") as f:
         train_ids, val_ids, test_ids = pickle.load(f)
+    args.logger.write(f'\nFold file used: {fold_file}')
+    args.logger.write(f'Fold type: ' + ('GroupShuffleSplit (pretrain)' if args.train_mode == "pretrain" or args.cohort == "mimic_all" else 'optimized (StratifiedSplitOptimizer)'))
+    args.logger.write(f'Outer fold: {args.fold} | split_seed: {effective_seed} | first_adm_only: {first_adm_only}')
+    args.logger.write(f'Fold contents: train {len(train_ids)} adms / {len(set(train_ids[:, 0]))} patients, '
+                      f'val {len(val_ids)} adms / {len(set(val_ids[:, 0]))} patients, '
+                      f'test {len(test_ids)} adms / {len(set(test_ids[:, 0]))} patients')
     return train_ids[:, 1], val_ids[:, 1], test_ids[:, 1]
 
 # UTILS for PREPROCESSING
@@ -128,8 +138,7 @@ def ids_in_data(data, ids, logger=None):
     test_ids  = np.array(ids["test"] if ids["test"] is not None else [], dtype=int)
 
     # get ids in current data
-    #all_ids = np.unique(np.concatenate([train_ids, val_ids, test_ids]))
-    all_ids = np.unique(np.concatenate([train_ids, val_ids]))
+    all_ids = np.unique(np.concatenate([train_ids, val_ids, test_ids]))
     curr_ids = data.hadm_id.unique()
     missing_ids = np.setdiff1d(all_ids, curr_ids)
 
@@ -142,7 +151,7 @@ def ids_in_data(data, ids, logger=None):
     sup_ts_ids = np.concatenate((train_ids, val_ids, test_ids))
 
     if logger is not None:
-        logger.write(f"\nTotal ids removed (not in data): {len(missing_ids)}") #will be zero because we dropped the admissions without features before splitting
+        logger.write(f"\nAdmissions dropped (no rows in features file): {len(missing_ids)}/{len(all_ids)}")
         logger.write(f"\n# train, val, test TS FILTERED: {len(train_ids)}, {len(val_ids)}, {len(test_ids)}")
 
     # keep only relevant ids in data

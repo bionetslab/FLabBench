@@ -9,7 +9,7 @@ class Extractor:
         self.args = args
         features_file = Path(args.paths["features_path"]) / args.cohort / "features.csv.gz"
         if not features_file.exists():
-            args.logger.write(f"Features not found for {args.cohort}, extracting...")
+            args.logger.write(f"Features not found for {args.cohort} {args.days_before_discharge}, Start Extracting...")
             self.extract()
             args.logger.write(f"Extraction complete: {features_file}")
         else:

@@ -106,6 +106,7 @@ class TSTrainer:
 
 
     def train(self):
+        self.args.logger.write('\nTraining started')
         self.evaluate_at_time(-1)
         self.model.train()
 
@@ -312,6 +313,7 @@ class CLTrainer:
             
 
         X_fit, y_fit = self._oversample(X_fit, y_fit)
+        self.args.logger.write('\nTraining started')
         self.model.fit(X_fit, y_fit)
         t_train = time.time() - t0
 
@@ -337,7 +339,7 @@ class CLTrainer:
     def _oversample(self, X, y):
         if getattr(self.args, "oversampling", None) == "minority":
             ros = RandomOverSampler(sampling_strategy='minority', random_state=self.args.seed)
-            self.args.logger.write(f"\n Oversampling Applied.")
+            self.args.logger.write(f"\n  Oversampling Applied: {self.args.oversampling}")
             return ros.fit_resample(X, y)
         return X, y
 
