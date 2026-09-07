@@ -173,7 +173,7 @@ class EnvManager:
         self.args.logger = Logger(self.args.paths["output_path"], 'log.txt')
         self.args.logger.write(f"\n{'#'*50} START {'#'*50}")
         self.args.logger.write('Global environment loaded')
-        self.args.logger.write(f'Training in {self.args.train_mode} mode on {self.args.device}')
+        self.args.logger.write(f'Training in {self.args.train_mode} mode on {self.args.device} model {self.args.model_type}')
         self.args.logger.write(f'Training setup: First admissions only {self.args.first_adm_only}')
         self.args.logger.write(f'Training setup: Fold {self.args.fold} Grid {self.args.grid}')
         self.args.logger.write(f'Training setup: Cohort {self.args.cohort} Features {self.args.variant} {self.args.days_before_discharge} agg {self.args.agg_int}')
@@ -395,6 +395,7 @@ class EnvManager:
                 # retrain with best params on the default split
                 self.set_model_params(mode="best")
 
+            self.args.logger.write(f"\n{'#'*30} FINAL RUN (outer fold {self.args.fold}, train+val -> test) {'#'*30}")
             self.set_ids(mode="final")
             self.train()
             

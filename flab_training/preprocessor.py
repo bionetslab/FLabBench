@@ -648,7 +648,7 @@ class PreprocessorML(PreprocessorA): # same as A only we flatten the input
         self.args.logger.write('ML flat matrix prepared. USING new ML PREPROCESSOR')
 
 
-class PreprocessorMLStats(PreprocessorML):
+'''class PreprocessorMLStats(PreprocessorML):
 
     STATS = ["mean", "std", "min", "max", "last", "count"]
 
@@ -664,13 +664,13 @@ class PreprocessorMLStats(PreprocessorML):
         self.trim()
 
 
-        '''n_bins = getattr(self.args, "ml_stats_bins", 1)
-        window_minutes = self.args.days_before_discharge * 24 * 60
-        bin_width = window_minutes / n_bins
-        self.data = self.data.assign(
-            stat_bin=np.minimum((self.data["minute"] // bin_width).astype(int), n_bins - 1)
-        )
-        self.args.logger.write('\nStats binning from ml_stats_bins: '+str(n_bins)+' bins of '+str(bin_width/1440)+' days')'''
+        #n_bins = getattr(self.args, "ml_stats_bins", 1)
+        #window_minutes = self.args.days_before_discharge * 24 * 60
+        #bin_width = window_minutes / n_bins
+        #self.data = self.data.assign(
+        #    stat_bin=np.minimum((self.data["minute"] // bin_width).astype(int), n_bins - 1)
+        #)
+        #self.args.logger.write('\nStats binning from ml_stats_bins: '+str(n_bins)+' bins of '+str(bin_width/1440)+' days')
 
         g = self.data.sort_values("minute").groupby(["ts_ind", "var_ind", "int"])["value"]
         stat_df = g.agg(["mean", "std", "min", "max", "count"])
@@ -722,21 +722,26 @@ class PreprocessorMLStats(PreprocessorML):
 
         self.input_dict = {"X_flat": pd.DataFrame(X, columns=feature_names)}
         self.input_dict["feature_names"] = feature_names
-        self.args.logger.write(f'ML stats matrix prepared ({self.args.T} bin(s)). Shape: {X.shape}')
+        self.args.logger.write(f'ML stats matrix prepared ({self.args.T} bin(s)). Shape: {X.shape}')'''
 
 
 class PreprocessorStats(PreprocessorML):
 
     ML_MODELS = ['random_forest', 'logistic_regression', 'gradient_boosting', 'xgboost', 'catboost']
     STATS = ["mean", "std", "min", "max", "last", "count"]
+    NORMALISE = True
+    DEMO = True
 
-    def trim(self): 
+    def trim(self):
         PreprocessorA.trim(self)
         self.args.T = int(np.ceil(self.args.days_before_discharge * 24 / self.args.agg_int))
-        self.data["int"] = self.data["int"].clip(upper=self.args.T - 1)
-        self.args.logger.write(f'Time bins clipped to {self.args.T} x {self.args.agg_int/24:.1f} days, '
-                               f'covering the {self.args.days_before_discharge} days before discharge')
-
+        overflow = self.data["int"] > self.args.T - 1
+        if overflow.any():
+            extra = self.data["minute"].max() - self.args.T * 60 * self.args.agg_int
+            self.args.logger.write(f'merge midnight-to-discharge to last bin. Merged tail: {int(overflow.sum())} rows, {extra/60:.1f} hours midnight to discharge')
+        self.data["int"] = self.data["int"].clip(upper=self.args.T - 1) 
+        self.args.logger.write(f'Time bins clipped to {self.args.T} x {self.args.agg_int/24:.1f} days, 'f'covering the {self.args.days_before_discharge} days before discharge')
+        
     def stat_blocks(self):
         g = self.data.sort_values("minute").groupby(["ts_ind", "var_ind", "int"])["value"]
         stat_df = g.agg(["mean", "std", "min", "max", "count"])
@@ -746,6 +751,13 @@ class PreprocessorStats(PreprocessorML):
         normed = {}
         for b in range(self.args.T):
             bin_df = stat_df[stat_df["int"] == b]
+            train_bin = bin_df[bin_df["ts_ind"].isin(self.train_ind)]
+            max_count = train_bin.groupby("var_ind")["count"].max()
+            print(f"[dbg] bin {b} across all admissions: observed ({bin_df['ts_ind'].nunique()}, {bin_df['var_ind'].nunique()}) "
+                  f"-> padded ({self.args.N}, {self.args.V}) | "
+                  f"{self.args.V - len(max_count)} variables never measured in train, "
+                  f"{int((max_count == 1).sum())} never measured twice in the same admission | "
+                  f"nan {100 * (1 - len(bin_df) / (self.args.N * self.args.V)):.1f}%")
             for stat in self.STATS:
                 m = bin_df.pivot(index="ts_ind", columns="var_ind", values=stat)
                 m = m.reindex(index=np.arange(self.args.N), columns=np.arange(self.args.V))
@@ -754,17 +766,24 @@ class PreprocessorStats(PreprocessorML):
                 if stat == "count":
                     m = np.nan_to_num(m, nan=0.0)
 
-                col_mean = np.nanmean(m[self.train_ind], axis=0)
-                col_mean = np.nan_to_num(col_mean, nan=0.0)
-                col_std = np.nanstd(m[self.train_ind], axis=0)
-                col_std = np.where(np.isnan(col_std) | (col_std == 0), 1.0, col_std)
-                filled = np.where(np.isnan(m), col_mean, m)
-                normed[(b, stat)] = (filled - col_mean) / col_std
+                if not self.NORMALISE:
+                    normed[(b, stat)] = np.nan_to_num(m, nan=0.0)
+                    continue
+
+                # normalize the STATS bin wise
+                n_obs = (~np.isnan(m[self.train_ind])).sum(axis=0) # admissions with a value, per variable
+                col_mean = np.nansum(m[self.train_ind], axis=0) / np.maximum(n_obs, 1) # 0 where no admission has that variable
+                col_std = np.sqrt(np.nansum((m[self.train_ind] - col_mean) ** 2, axis=0) / np.maximum(n_obs, 1))
+                col_std = np.where(col_std == 0, 1.0, col_std)
+                filled = np.where(np.isnan(m), col_mean, m) # fill nan values with mean 
+                normed[(b, stat)] = (filled - col_mean) / col_std # filled values become zeros 
+  
+
         return normed
 
     def get_feature_names(self, variant):
         ts_cols = [f"{v}_{stat}_bin{b}" for b in range(self.args.T) for stat in self.STATS for v in self.variables]
-        return ts_cols + list(self.dataset.static_data.columns)
+        return ts_cols + (list(self.dataset.static_data.columns) if self.DEMO else [])
 
     def prepare_inputs(self):
         self.set_variables()
@@ -772,16 +791,26 @@ class PreprocessorStats(PreprocessorML):
         normed = self.stat_blocks()
         #self.args.logger.write("ohne ML trim")
         X_3d = np.stack([np.concatenate([normed[(b, stat)] for stat in self.STATS], axis=1) for b in range(self.args.T)], axis=1)
+        print(f"[dbg] X_3d={X_3d.shape} zero_frac={(X_3d == 0).mean():.3f} nan_frac={np.isnan(X_3d).mean():.3f}")
 
         if self.args.model_type in self.ML_MODELS:
-            X = np.concatenate([X_3d.reshape(X_3d.shape[0], -1), self.dataset.demo], axis=1)
+            X = np.concatenate([X_3d.reshape(X_3d.shape[0], -1)] + ([self.dataset.demo] if self.DEMO else []), axis=1)
             feature_names = self.get_feature_names(self.args.variant)
+            print(f"[dbg] X={X.shape} names={len(feature_names)} "f"const_zero_cols={int((X == 0).all(axis=0).sum())}")
+            
             self.input_dict = {"X_flat": pd.DataFrame(X, columns=feature_names)}
             self.input_dict["feature_names"] = feature_names
             self.args.logger.write(f'Feature matrix: {X.shape[0]} samples x {X.shape[1]} features = '
                                    f'{self.args.V} variables x {len(self.STATS)} stats x {self.args.T} bins '
-                                   f'+ {self.dataset.demo.shape[1]} static')
+                                   f'+ {self.dataset.demo.shape[1] if self.DEMO else 0} static')
         else:
             self.X = X_3d
             self.input_dict = {"X": X_3d}
             self.args.logger.write(f'PreprocessorStats: TS stats matrix prepared ({self.args.T} bin(s)). Shape: {X_3d.shape}')
+
+
+class PreprocessorCount(PreprocessorStats):
+
+    STATS = ["count"]
+    NORMALISE = False
+    DEMO = False

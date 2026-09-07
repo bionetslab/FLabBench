@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import pickle
 from flab_training.utils import safe_pos_freq, remove_features_not_in_train, compute_lab_frequency, ids_in_data, set_splits, compute_class_weight
-from flab_training.preprocessor import PreprocessorA, PreprocessorB, PreprocessorC_sup, PreprocessorC_unsup, PreprocessorD_unsup, PreprocessorD_sup, PreprocessorML, PreprocessorMLStats, PreprocessorStats
+from flab_training.preprocessor import PreprocessorA, PreprocessorB, PreprocessorC_sup, PreprocessorC_unsup, PreprocessorD_unsup, PreprocessorD_sup, PreprocessorML, PreprocessorStats, PreprocessorCount
 
 
 class TimeSeriesDataset:
@@ -160,6 +160,8 @@ class TimeSeriesDataset:
         train_ind = self.splits['train']
         if self.args.variant == "stats":
             self.preproc = PreprocessorStats(self)
+        elif self.args.variant == "count":
+            self.preproc = PreprocessorCount(self)
         elif model_type in ['gru', 'lstm', 'tcn', 'sand', 'mlp']:
             self.preproc = PreprocessorA(self)
         elif model_type in ['grud', 'interpnet']:
