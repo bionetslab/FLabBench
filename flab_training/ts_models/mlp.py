@@ -7,7 +7,7 @@ class MLP(TimeSeriesModel):
     def __init__(self, args):
         super().__init__(args)
     
-        ts_dim = args.T * args.V * len(args.variant)
+        ts_dim = args.T * args.F
         input_dim = ts_dim
         
         layers = []

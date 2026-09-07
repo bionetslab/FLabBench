@@ -119,7 +119,8 @@ class PreprocessorA(Preprocessor):
         else:  # default: VMD
             self.X = np.concatenate((self.values, self.obs, self.delta), axis=-1)
         self.input_dict["X"] = self.X
-        self.args.logger.write('Input prepared')
+        self.args.F = self.X.shape[-1]
+        self.args.logger.write(f'Input prepared. Shape: {self.X.shape} (N, T, F={self.args.F})')
 
 
 class PreprocessorB(Preprocessor):
@@ -806,7 +807,9 @@ class PreprocessorStats(PreprocessorML):
         else:
             self.X = X_3d
             self.input_dict = {"X": X_3d}
-            self.args.logger.write(f'PreprocessorStats: TS stats matrix prepared ({self.args.T} bin(s)). Shape: {X_3d.shape}')
+            self.args.F = X_3d.shape[-1]
+            self.args.logger.write(f'PreprocessorStats: TS stats matrix prepared ({self.args.T} bin(s)). '
+                                   f'Shape: {X_3d.shape} (N, T, F={self.args.F} = {self.args.V} variables x {len(self.STATS)} stats)')
 
 
 class PreprocessorCount(PreprocessorStats):

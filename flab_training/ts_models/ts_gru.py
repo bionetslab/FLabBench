@@ -14,7 +14,7 @@ class GRU_TS(TimeSeriesModel):
         super().__init__(args)
 
         # number of features depend on variant V, VM, VMD
-        input_dim = args.V * len(args.variant) 
+        input_dim = args.F
 
         self.gru = nn.GRU(
             input_size=int(input_dim),

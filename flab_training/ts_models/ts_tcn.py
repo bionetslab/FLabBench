@@ -71,7 +71,7 @@ class TemporalConvNet(nn.Module):
 class TCN_TS(TimeSeriesModel):
     def __init__(self, args):
         super().__init__(args)
-        self.tcn = TemporalConvNet(args.V*len(args.variant), [args.hid_dim]*args.num_layers, args.kernel_size, args.dropout)
+        self.tcn = TemporalConvNet(args.F, [args.hid_dim]*args.num_layers, args.kernel_size, args.dropout)
         
     def forward(self, ts, demo, labels=None, return_emb: bool = False):
         ts = torch.permute(ts, (0,2,1)) # N,V,T

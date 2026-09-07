@@ -95,7 +95,7 @@ class DenseInterpolation(nn.Module):
 class SAND_TS(TimeSeriesModel):
     def __init__(self, args):
         super().__init__(args)
-        self.input_embedding = nn.Conv1d(args.V*len(args.variant), args.hid_dim, 1)
+        self.input_embedding = nn.Conv1d(args.F, args.hid_dim, 1)
         self.positional_encoding = nn.Parameter(torch.empty((1,args.T,args.hid_dim)),
                                                 requires_grad=True)
         nn.init.normal_(self.positional_encoding)

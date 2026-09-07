@@ -11,7 +11,7 @@ class LSTM_TS(TimeSeriesModel):
     def __init__(self, args):
         super().__init__(args)
 
-        input_dim = args.V * len(args.variant)
+        input_dim = args.F
         
         self.lstm = nn.LSTM(
             input_size=input_dim,
