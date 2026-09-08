@@ -27,6 +27,7 @@ class Extractor:
             features_base_path=self.args.paths["features_path"],
             top_features_path=None,
             days_before_discharge=getattr(self.args, "days_before_discharge", 14),
+            first_adm_only=getattr(self.args, "first_adm_only", False),
         )
         extractor.extract(cohort_df, self.args.cohort)
 
