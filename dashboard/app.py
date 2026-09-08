@@ -522,7 +522,7 @@ umap_color = c1.selectbox(
     format_func=lambda c: UMAP_LABELS.get(c, c),
 )
 k_clusters = c1.slider(
-    "K (clusters)", 10, 200, 100, step=10,
+    "K (clusters)", 10, 500, 100, step=10,
     help="K-means on the features above; the cohort nearest each cluster centre "
          "becomes that cluster's representative.",
 )
