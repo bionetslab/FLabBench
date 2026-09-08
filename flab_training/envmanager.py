@@ -178,7 +178,8 @@ class EnvManager:
         self.args.logger.write(f'Training setup: Fold {self.args.fold} Grid {self.args.grid}')
         self.args.logger.write(f'Training setup: Cohort {self.args.cohort} Features {self.args.variant} {self.args.days_before_discharge} agg {self.args.agg_int}')
         self.args.logger.write(f'Training setup: Features {self.args.variant} {self.args.days_before_discharge} agg {self.args.agg_int} oversampling {self.args.oversampling} impute {self.args.impute}')
-        self.args.logger.write(f'Training setup: config file {self.args.config_path}')
+        self.args.logger.write(f'Training setup: config file {Path(self.config_path).resolve()}'
+                               f' ({"passed via --config_path" if self.args.config_path else "default"})')
         self.args.logger.write(f'Training setup: prefix {self.args.prefix}')
         self.args.logger.write(f"\n{'#'*100}")
 

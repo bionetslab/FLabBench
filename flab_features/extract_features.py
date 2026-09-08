@@ -26,7 +26,7 @@ def main():
                         help="Override MIMIC root path. Default: from MIMIC_IV_PATH env.")
     parser.add_argument("--days", type=int, default=14,
                         help="Days before discharge to extract labs. Default: 14.")
-    parser.add_argument("--feature-selection", type=lambda x: x.lower() == "true", default=True,
+    parser.add_argument("--feature-selection", type=lambda x: x.lower() == "true", default=False,
                         help="Filter to top features before saving.")
     parser.add_argument("--first-adm-only", action="store_true",
                         help="Keep only each patient's earliest admission. "

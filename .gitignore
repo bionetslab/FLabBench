@@ -10,3 +10,4 @@ graph_training/analysis/ts_figures/
 **/data/
 .vscode/
 saved_data_old/
+jobs/

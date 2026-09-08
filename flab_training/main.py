@@ -24,6 +24,7 @@ parser.add_argument("--prefix", type=str, default=None)
 parser.add_argument("--static_threshold", type=int, default=0)
 parser.add_argument("--hid_dim_demo", type=int, default=64)
 parser.add_argument("--agg_int", type=int, default=24) # with this parameter it is possible to study the effect of discretisation window on performance.
+parser.add_argument("--agg", type=str, default="mean", choices=["mean", "last"], help="Collapse measurements within an agg_int bin by mean or last value")
 parser.add_argument("--drop_minutes", action="store_true", help="Do not consider timestamps but only days") # with this flag it is possible to study the effect of removing exact times on performance.
 parser.add_argument("--freeze", action="store_true", help="Freeze all except for last layers in finetuning")
 parser.add_argument("--config_path", default=None)
@@ -36,6 +37,7 @@ parser.add_argument("--variant", type=str, default="VMD")
 parser.add_argument("--extractor", type=str, default="DTB")
 parser.add_argument("--first_adm_only", action="store_true", help="Keep only the first admission per patient")
 parser.add_argument("--oversampling", type=str, default=None, choices=["minority"], help="Oversampling strategy for ML model training")
+parser.add_argument("--feature_combination_method", type=str, default="concatenate", choices=["concatenate", "aggregate"], help="Flatten all time bins into features or average over them")
 args = parser.parse_args()
 
 # GRID SEARCH
