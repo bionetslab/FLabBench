@@ -202,9 +202,9 @@ logistic_regression:
     feature_combination_method: concatenate
   grid_search:
     #variant: [VMD]
-    impute: [fill]
-    feature_combination_method: [aggregate, concatenate]
-    C: [0.01, 0.1, 1]
+    #impute: [fill]
+    #feature_combination_method: [aggregate, concatenate]
+    C: [0.001,0.01, 0.1, 1, 10]
     penalty: [l2]
     max_iter: [2000]
 

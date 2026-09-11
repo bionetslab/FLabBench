@@ -22,7 +22,7 @@ def set_all_paths(args, out=True):
     path_dict = {
         "saved_data_path":    saved_data_path,
         "cohort_path":        saved_data_path / "cohorts" / extractor /"new",
-        "features_path":      saved_data_path / (f"features_{days_before_discharge}d" + ("_firstadm" if getattr(args, "first_adm_only", False) else "")),
+        "features_path":      saved_data_path / "features" / (f"features_{days_before_discharge}d" + ("_firstadm" if getattr(args, "first_adm_only", False) else "")),
         "folds_path":         saved_data_path / "folds" / cohort,
         "top_features_path":  Path(PROJECT_ROOT) /"data"/ "top_features",
         "features_selected_path": saved_data_path / "features_selected_corr",

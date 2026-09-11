@@ -50,11 +50,12 @@ class Preprocessor:
         if self.args.train_mode != "pretrain":
             self.input_dict["target"] = self.dataset.y
             
-        # pickle dump only if not training in nested crossvalidation
-        #if not (self.args.cv_mode == "grid"): #self.args.grid == "nested" and
-        #    output_path = Path(self.dataset.args.paths["output_path"]) / "input_dict.pkl"
-        #    with open(output_path, "wb") as f:
-        #        pickle.dump(self.input_dict, f)
+        # pickle dump only in stats mode, for these cohorts, and not in nested crossvalidation
+        save_cohorts = ["A08-K52","C25-D63"]
+        if self.args.variant == "stats" and self.args.cohort in save_cohorts and self.args.cv_mode != "grid":
+            output_path = Path(self.dataset.args.paths["output_path"]) / "input_dict.pkl"
+            with open(output_path, "wb") as f:
+                pickle.dump(self.input_dict, f)
 
 
 class PreprocessorA(Preprocessor):
@@ -643,6 +644,12 @@ class PreprocessorML(PreprocessorA): # same as A only we flatten the input
     def prepare_inputs(self):
         PreprocessorA.prepare_inputs(self)
         X = self.flatten(self.input_dict.pop("X"))
+        if self.args.model_type == 'logistic_regression':
+            from sklearn.preprocessing import StandardScaler
+            scaler = StandardScaler()
+            scaler.fit(X[self.train_ind])
+            X = scaler.transform(X)
+            self.args.logger.write('Flat matrix standardised for logistic regression')
         feature_names = self.get_feature_names(self.args.variant)
         self.input_dict["X_flat"] = pd.DataFrame(X, columns=feature_names)
         self.input_dict["feature_names"] = feature_names
