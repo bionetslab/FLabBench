@@ -140,6 +140,15 @@ class TimeSeriesDataset:
             val_pos_freq   = safe_pos_freq(self.y[self.splits['val']])
             test_pos_freq  = safe_pos_freq(self.y[self.splits['test']])
 
+            # only stratify batches for rare-outcome cohorts (few positives per batch)
+            if self.args.stratify_batch > 0:
+                if train_pos_freq >= 0.10:
+                    self.args.logger.write(f'\nStratified batches OFF: train positive rate {train_pos_freq:.1%} >= 10.0%')
+                    self.args.stratify_batch = 0
+                else:
+                    self.args.logger.write(f'\nStratified batches ON: train positive rate {train_pos_freq:.1%} < 10.0% -> '
+                                           f'{self.args.stratify_batch} positives per batch of {self.args.train_batch_size}')
+
             self.args.pos_class_weight = compute_class_weight(train_pos_freq, self.args.pos_class_weight, self.args.stratify_batch, self.args.train_batch_size)
 
             self.args.logger.write('\nClass balance:')

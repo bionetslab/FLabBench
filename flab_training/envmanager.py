@@ -185,7 +185,9 @@ class EnvManager:
 
     def set_stratify_batch(self):
         # if task is very unbalanced (NF) > stratify batch
-        self.args.stratify_batch = 8 if "NF" in self.args.cohort else 0
+        #self.args.stratify_batch = 8 if "NF" in self.args.cohort else 0
+        # eligible only for minibatch-trained (TS) models, prevalence check in dataset.get_target
+        self.args.stratify_batch = 0 if self.args.model_type in CL_MODELS else 8
 
     def get_param_grid_list(self):
         keys = list(self.param_grid.keys())
