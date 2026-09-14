@@ -1,0 +1,67 @@
+global:
+  seed: 42
+  train_batch_size: 32
+  eval_batch_size: 64
+  print_train_loss_every: 1000
+  max_epochs: 100
+  validate_every: null
+  patience: 10
+  criterion: auc
+  gradient_accumulation_steps: 1
+  grad_clip: 1.0
+  weight_decay: 1e-4
+  loss_fn: bce
+  calibrate_threshold: 0
+  window_forecast: 10080
+  window_pred: 1440
+  pos_class_weight: 0
+
+lstm:
+  default:
+    hid_dim: 128
+    num_layers: 1
+    dropout: 0.2
+    lr: 5e-4
+    weight_decay: 1e-4
+    pos_class_weight: 0
+  grid_search:
+    hid_dim:
+    - 32
+    - 64
+    - 128
+    - 256
+    - 512
+    num_layers:
+    - 1
+    - 2
+    dropout: {low: 0.0, high: 0.7}
+    lr: {low: 3e-5, high: 3e-3, log: true}
+    weight_decay: {low: 1e-6, high: 1e-2, log: true}
+    pos_class_weight:
+    - 0
+    - 1
+
+gru:
+  default:
+    hid_dim: 128
+    num_layers: 1
+    dropout: 0.2
+    lr: 5e-4
+    weight_decay: 1e-4
+    pos_class_weight: 0
+  grid_search:
+    hid_dim:
+    - 32
+    - 64
+    - 128
+    - 256
+    - 512
+    num_layers:
+    - 1
+    - 2
+    dropout: {low: 0.0, high: 0.7}
+    lr: {low: 3e-5, high: 3e-3, log: true}
+    weight_decay: {low: 1e-6, high: 1e-2, log: true}
+    pos_class_weight:
+    - 0
+    - 1

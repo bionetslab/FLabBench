@@ -1,0 +1,53 @@
+global:
+  seed: 42
+  train_batch_size: 32
+  eval_batch_size: 64
+  print_train_loss_every: 1000
+  max_epochs: 100
+  validate_every: null
+  patience: 10
+  criterion: "auc"
+  gradient_accumulation_steps: 1
+  grad_clip: 1.0
+  weight_decay: 4e-5
+  loss_fn: "bce"
+  calibrate_threshold: 0
+  window_forecast: 10080
+  window_pred: 1440
+  pos_class_weight: 0
+
+lstm:
+  default:
+    hid_dim: 256
+    num_layers: 1
+    dropout: 0.2
+    lr: 8e-5
+    agg: "mean"
+    impute: "fill"
+    pos_class_weight: 0
+
+  grid_search:
+    hid_dim: [128,256,512] #256
+    num_layers: [1, 2]
+    dropout: [0.2, 0.45]
+    lr: [8e-5]
+    pos_class_weight: [0, 1]
+
+
+gru:
+  default:
+    #variant: "VMD"
+    hid_dim: 128
+    num_layers: 1
+    dropout: 0.2
+    lr: 5e-4
+    agg: "mean"
+    impute: "fill"
+    pos_class_weight: 0
+
+  grid_search:
+    hid_dim: [64,256]
+    num_layers: [1, 2]
+    dropout: [0.2, 0.33, 0.65]
+    lr: [4e-5, 5e-4]
+    pos_class_weight: [0, 1]

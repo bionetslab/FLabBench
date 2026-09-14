@@ -191,6 +191,10 @@ class EnvManager:
 
     def get_param_grid_list(self):
         keys = list(self.param_grid.keys())
+        # continuous ranges ({low, high}) can only be sampled by optuna, not enumerated
+        ranges = [k for k in keys if isinstance(self.param_grid[k], dict)]
+        if ranges:
+            raise ValueError(f"Params {ranges} are continuous ranges, use --search optuna or list their values")
         values = [self.param_grid[k] for k in keys]
         all_combos = [dict(zip(keys, v)) for v in product(*values)]
 
@@ -240,11 +244,25 @@ class EnvManager:
         grid_file = Path(self.args.paths["output_path"]) / "grid_results.csv"
         n_trials = self.args.n_trials or 20
 
+        # log the sampled search space so the run is reproducible from the log alone
+        self.args.logger.write(f'\nOptuna TPESampler (seed {self.args.seed}), {n_trials} trials x {n_inner_folds} inner folds')
+        for k, v in self.param_grid.items():
+            if isinstance(v, dict):
+                scale = "log" if v.get("log", False) else "linear"
+                self.args.logger.write(f'  {k:18s} continuous  [{float(v["low"]):g}, {float(v["high"]):g}] {scale}', show_time=False)
+            else:
+                self.args.logger.write(f'  {k:18s} categorical {v}', show_time=False)
+
         def objective(trial):
             params = {}
             for k, v in self.param_grid.items():
+                # {low, high, log} > continuous param sampled on a linear or log scale
+                if isinstance(v, dict):
+                    params[k] = trial.suggest_float(k, float(v["low"]), float(v["high"]), log=v.get("log", False))
+                    continue
+                # list > categorical param, values treated as unrelated labels
                 choices = [tuple(x) if isinstance(x, list) else x for x in v]
-                suggested = trial.suggest_categorical(k, choices) # TODO: suggest_categorical treats lr/dropout as unrelated labels, could be continuous params for better optimization 
+                suggested = trial.suggest_categorical(k, choices)
                 params[k] = list(suggested) if isinstance(suggested, tuple) else suggested
 
             self.args.logger.write(f"\n{'='*50}")
