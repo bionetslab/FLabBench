@@ -36,12 +36,20 @@ def generate_folds(cohort_name, paths, num_folds=5, seed=None, pretrain=False, f
         
     if pretrain or cohort_name == "mimic_all":
 
+        #subject_ids = cohort[["subject_id", "hadm_id"]].drop_duplicates().sort_values(["subject_id", "hadm_id"]).reset_index(drop=True)
+        #groups = subject_ids["subject_id"].values
+        #gss = GroupShuffleSplit(n_splits=1, train_size=0.8, random_state=effective_seed)
+        #train_idx, val_idx = next(gss.split(subject_ids, groups=groups))
+        #train_hadms = subject_ids.iloc[train_idx][["subject_id", "hadm_id"]].values
+        #val_hadms   = subject_ids.iloc[val_idx][["subject_id", "hadm_id"]].values
+
+        # use the optimized global patient split, held_out patients are excluded from pretraining
+        split_dir = paths["folds_path"].parent / "global_split_ids"
+        train_subj = set(np.loadtxt(split_dir / "train.txt", dtype=int).tolist())
+        val_subj   = set(np.loadtxt(split_dir / "tuning.txt", dtype=int).tolist())
         subject_ids = cohort[["subject_id", "hadm_id"]].drop_duplicates().sort_values(["subject_id", "hadm_id"]).reset_index(drop=True)
-        groups = subject_ids["subject_id"].values
-        gss = GroupShuffleSplit(n_splits=1, train_size=0.8, random_state=effective_seed)
-        train_idx, val_idx = next(gss.split(subject_ids, groups=groups))
-        train_hadms = subject_ids.iloc[train_idx][["subject_id", "hadm_id"]].values
-        val_hadms   = subject_ids.iloc[val_idx][["subject_id", "hadm_id"]].values
+        train_hadms = subject_ids[subject_ids["subject_id"].isin(train_subj)].values
+        val_hadms   = subject_ids[subject_ids["subject_id"].isin(val_subj)].values
         test_hadms  = np.empty((0, 2), dtype=int)
         with open(save_path / "fold_0.pkl", "wb") as f:
             pickle.dump([train_hadms, val_hadms, test_hadms], f)

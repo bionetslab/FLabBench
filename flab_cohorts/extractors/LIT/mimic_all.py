@@ -16,15 +16,16 @@ class MimicAllExtractor(BaseExtractor):
     def extract_cohort(self):
         cohort = self.adms.copy()
 
-        supervised_subjects = set()
-        for name in EXCLUDE_COHORTS:
-            f = self.paths["cohort_path"] / f"cohort_{name}.csv.gz"
-            if f.exists():
-                df = pd.read_csv(f, compression="gzip", usecols=["subject_id"])
-                supervised_subjects.update(df["subject_id"].tolist())
-                logger.info("Excluded %d subjects from %s", df["subject_id"].nunique(), name)
+        # not needed, the global split keeps held_out patients out of pretraining
+        #supervised_subjects = set()
+        #for name in EXCLUDE_COHORTS:
+        #    f = self.paths["cohort_path"] / f"cohort_{name}.csv.gz"
+        #    if f.exists():
+        #        df = pd.read_csv(f, compression="gzip", usecols=["subject_id"])
+        #        supervised_subjects.update(df["subject_id"].tolist())
+        #        logger.info("Excluded %d subjects from %s", df["subject_id"].nunique(), name)
 
-        cohort = cohort[~cohort["subject_id"].isin(supervised_subjects)].copy()
+        #cohort = cohort[~cohort["subject_id"].isin(supervised_subjects)].copy()
         cohort["label"] = 0
 
         self.save_cohort(cohort)

@@ -76,7 +76,8 @@ class BaseExtractor:
             cohort.loc[cohort["label"] == 1, id_col].nunique(),
             pct,
         )
-        cohort.to_csv(self.paths["cohort_path"] / f"cohort_{cohort_name}.csv.gz", compression="gzip", index=False)
+        #cohort.to_csv(self.paths["cohort_path"] / f"cohort_{cohort_name}.csv.gz", compression="gzip", index=False)
+        cohort.to_csv(self.paths["cohort_path"] / f"{cohort_name}.csv.gz", compression="gzip", index=False)
 
 
 class ICUBaseExtractor(BaseExtractor):
