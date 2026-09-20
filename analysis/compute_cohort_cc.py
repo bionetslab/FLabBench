@@ -53,7 +53,9 @@ class Cohort:
         if self.first_adm_only:
             df = (df.sort_values("admittime", kind="stable").drop_duplicates("subject_id", keep="first"))
         if self.split != "all":
-            df = df[df.hadm_id.isin(self.folds()[self.split])]
+            folds = self.folds()
+            keep = np.concatenate([folds[s] for s in self.split.split("+")])
+            df = df[df.hadm_id.isin(keep)]
         return df.reset_index(drop=True)
     
     @cached_property
@@ -319,7 +321,8 @@ def save_characteristics(cohort_names, out_name=None, extractor="DTB", **kwargs)
         days = kwargs.get("days_before_discharge", 14)
         agg_int = kwargs.get("agg_int", 24)
         n_itemids = int(df["n_itemids"].iloc[0])
-        out_name = f"characteristics_{days}d_agg{agg_int}_top{n_itemids}.csv"
+        split = kwargs.get("split", "all")
+        out_name = f"characteristics_{days}d_agg{agg_int}_top{n_itemids}_{split}.csv"
 
     path = out_dir / out_name
     df.to_csv(path, index=False)
@@ -336,11 +339,14 @@ if __name__ == "__main__":
     p.add_argument("--days_before_discharge", type=int, default=14)
     p.add_argument("--agg_int", type=int, default=24)
     p.add_argument("--n_top_features", type=int, help="keep only the n most important itemids")
+    p.add_argument("--split", default="all",
+                   choices=["all", "train", "val", "test", "train+val"])
     args = p.parse_args()
 
     cohorts = (Path(args.cohort_file).read_text().split() if args.cohort_file else args.cohorts)
     save_characteristics(cohorts, out_name=args.out_name,
                          days_before_discharge=args.days_before_discharge,
                          agg_int=args.agg_int,
-                         n_top_features=args.n_top_features)
+                         n_top_features=args.n_top_features,
+                         split=args.split)
 
