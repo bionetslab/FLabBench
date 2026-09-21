@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import pickle
+import pyarrow.parquet as pq
 from pathlib import Path
 from tqdm import tqdm
 
@@ -52,24 +53,32 @@ class FeatureExtractor:
         adms["starttime"] = (adms["dischtime"] - pd.DateOffset(days=self.days)).apply(lambda x: x.replace(hour=0, minute=0, second=0))
         adms["time_before_disch"] = adms["dischtime"] - pd.Timedelta(days=self.days)
 
-        subject_ids = list(adms["subject_id"].unique())
+        subject_ids = set(adms["subject_id"].unique())
 
-        labs = pd.read_parquet(self.labs_parquet, filters=[("subject_id", "in", subject_ids)])
+        parts = []
+        for batch in tqdm(pq.ParquetFile(self.labs_parquet).iter_batches(batch_size=1_000_000)):
+            labs = batch.to_pandas()
+            labs = labs[labs["subject_id"].isin(subject_ids)]
 
-        if self.top_features is not None:
-            labs = labs[labs["itemid"].isin(self.top_features)]
+            if self.top_features is not None:
+                labs = labs[labs["itemid"].isin(self.top_features)]
 
-        if labs.empty:
+            if labs.empty:
+                continue
+
+            part = labs.merge(
+                adms[["subject_id", "hadm_id", "dischtime", "starttime", "time_before_disch"]],
+                on="subject_id",
+            )
+            parts.append(part[
+                (part["charttime"] >= part["time_before_disch"]) &
+                (part["charttime"] <= part["dischtime"])
+            ])
+
+        if not parts:
             return
 
-        sub = labs.merge(
-            adms[["subject_id", "hadm_id", "dischtime", "starttime", "time_before_disch"]],
-            on="subject_id",
-        )
-        sub = sub[
-            (sub["charttime"] >= sub["time_before_disch"]) &
-            (sub["charttime"] <= sub["dischtime"])
-        ]
+        sub = pd.concat(parts, ignore_index=True)
 
         if sub.empty:
             return
