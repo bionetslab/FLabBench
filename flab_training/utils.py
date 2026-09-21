@@ -93,7 +93,7 @@ def load_fold_file(args):
         args.logger.write(f'\nFold file NOT found: {fold_file}')
         #generate_folds(args.cohort, args.paths, seed=effective_seed, pretrain=args.train_mode == "pretrain", first_adm_only=first_adm_only)
         if args.train_mode == "pretrain" or args.cohort == "mimic_all":
-            args.logger.write(f'Generating GroupShuffleSplit folds (generate_folds, pretrain=True, seed={effective_seed}, first_adm_only={first_adm_only})')
+            args.logger.write(f'Generating folds from global_split_ids (generate_folds, pretrain=True, seed={effective_seed}, first_adm_only={first_adm_only})')
             generate_folds(args.cohort, args.paths, seed=effective_seed, pretrain=True, first_adm_only=first_adm_only)
         else:
             args.logger.write(f'Generating OPTIMIZED folds (generate_optimized_folds, seed={effective_seed}, first_adm_only={first_adm_only}) - this rewrites fold files for ALL cohorts')
@@ -107,7 +107,7 @@ def load_fold_file(args):
     with open(fold_file, "rb") as f:
         train_ids, val_ids, test_ids = pickle.load(f)
     args.logger.write(f'\nFold file used: {fold_file}')
-    args.logger.write(f'Fold type: ' + ('GroupShuffleSplit (pretrain)' if args.train_mode == "pretrain" or args.cohort == "mimic_all" else 'optimized (StratifiedSplitOptimizer)'))
+    args.logger.write(f'Fold type: ' + ('global_split_ids (pretrain)' if args.train_mode == "pretrain" or args.cohort == "mimic_all" else 'optimized (StratifiedSplitOptimizer)'))
     args.logger.write(f'Outer fold: {args.fold} | split_seed: {effective_seed} | first_adm_only: {first_adm_only}')
     args.logger.write(f'Fold contents: train {len(train_ids)} adms / {len(set(train_ids[:, 0]))} patients, '
                       f'val {len(val_ids)} adms / {len(set(val_ids[:, 0]))} patients, '
