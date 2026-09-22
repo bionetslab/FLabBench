@@ -163,6 +163,19 @@ strats:
     lr: [1e-4, 5e-4]
     pos_class_weight: [0, 1]
 
+emit:
+  default:
+    max_obs: 880
+    hid_dim: 50
+    num_layers: 2
+    num_heads: 4
+    attention_dropout: 0.2
+    dropout: 0.4
+    lr: 5e-5
+    pos_class_weight: 0
+
+
+
 mlp:
   grid_search:
     #variant: ["VMD"]

@@ -1,27 +1,30 @@
+# strats finetuning: EMIT-style low lr + higher dropout.
+# Architecture pinned to the pretrained checkpoint (128 / L2 / H8) - do not change.
+
 global:
   seed: 42
-  train_batch_size: 64
+  train_batch_size: 32
   eval_batch_size: 64
   print_train_loss_every: 1000
-  max_epochs: 200
+  max_epochs: 100
   validate_every: null
   patience: 10
-  criterion: "loss"
+  criterion: auc
   gradient_accumulation_steps: 1
   grad_clip: 1.0
   weight_decay: 1e-4
-  loss_fn: "bce"
+  loss_fn: bce
   calibrate_threshold: 0
   window_forecast: 10080
   window_pred: 1440
-  
+  pos_class_weight: 0
 strats:
-  mimic_all:
+  default:
     max_obs: 1000
     hid_dim: 128
     num_layers: 2
     num_heads: 8
     attention_dropout: 0.2
-    dropout: 0.2
-    lr: 0.0005
+    dropout: 0.4
+    lr: 5e-5
     pos_class_weight: 0

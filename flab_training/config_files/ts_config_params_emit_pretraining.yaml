@@ -14,7 +14,8 @@ global:
   calibrate_threshold: 0
   window_forecast: 10080
   window_pred: 1440      
-  event_mask_threshold: 0.001
+  #event_mask_threshold: 0.001
+  event_mask_threshold: 0.00033
   insignificant_prob: 0.4 
 
 # finetning dropout (0.4), batch size (32), lr (5e-5), and weight_decay (1e-4).
