@@ -181,6 +181,8 @@ class EnvManager:
         self.args.logger.write(f'Training setup: config file {Path(self.config_path).resolve()}'
                                f' ({"passed via --config_path" if self.args.config_path else "default"})')
         self.args.logger.write(f'Training setup: prefix {self.args.prefix}')
+        if self.args.model_type == 'emit':
+            self.args.logger.write(f'Training setup: event_mask_threshold {self.args.event_mask_threshold} insignificant_prob {self.args.insignificant_prob}')
         self.args.logger.write(f"\n{'#'*100}")
 
     def set_stratify_batch(self):

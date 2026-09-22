@@ -279,8 +279,10 @@ class BatcherD_unsup(Batcher):
                 forecast_values[b,vari] = val
 
         # Compute event masks on-the-fly: stochastic for train, deterministic for val (stable val curve)
-        is_train = any(i in self.train_ts_inds for i in ind)
-        insig_prob = self.insignificant_prob if is_train else 0.0
+        #is_train = any(i in self.train_ts_inds for i in ind)
+        #insig_prob = self.insignificant_prob if is_train else 0.0
+        # same insignificant_prob for train and val, as in original EMIT
+        insig_prob = self.insignificant_prob
         input_event_masks = compute_event_masks(
             input_times, input_values, input_varis,
             V=self.args.V,
@@ -401,8 +403,10 @@ class BatcherD_unsup_fixed(Batcher):
                     forecast_mask[b, v] = 1
                         
         # Compute event masks: stochastic for train, deterministic for val (stable val curve)
-        is_train = any(i in self.train_ts_inds for i in ind)
-        insig_prob = self.insignificant_prob if is_train else 0.0
+        #is_train = any(i in self.train_ts_inds for i in ind)
+        #insig_prob = self.insignificant_prob if is_train else 0.0
+        # same insignificant_prob for train and val, as in original EMIT
+        insig_prob = self.insignificant_prob
         input_event_masks = compute_event_masks(
             input_times, input_values, input_varis,
             V=self.args.V,

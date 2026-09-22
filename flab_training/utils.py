@@ -316,12 +316,14 @@ def compute_event_masks(times_list, values_list, varis_list, V, threshold=0.1, i
             time_diffs = np.diff(var_times)
             value_diffs = np.diff(var_values)
 
-            time_diffs = np.where(time_diffs == 0, 1e-6, time_diffs)
-            rates = np.abs(value_diffs / time_diffs)
+            # rate at position j is the change from j to j+1, last position stays 0
+            rates = np.zeros(len(var_indices))
+            nz = time_diffs != 0
+            rates[:-1][nz] = np.abs(value_diffs[nz] / time_diffs[nz])
 
             significant = rates > threshold
 
-            for j, idx in enumerate(var_indices[1:]):
+            for j, idx in enumerate(var_indices):
                 n_considered += 1
                 if significant[j]:
                     n_sig += 1

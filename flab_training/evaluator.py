@@ -122,8 +122,14 @@ class EvaluatorPretrain(Evaluator):
         
             with torch.no_grad():
                 train_loss, _ = model(**batch)
-                loss += train_loss * num_pred
-                count += num_pred
+                if self.args.model_type == "emit":
+                    # plain mean over batches, as in original EMIT (loss is per-patient, not per-target)
+                    loss += train_loss
+                    count += 1
+                else:
+                    # strats loss is already divided by forecast_mask.sum(), weighting restores the pooled per-target mean
+                    loss += train_loss * num_pred
+                    count += num_pred
                 
         result = {'loss': (loss / count).item() if count else None}
         self.args.logger.write(f"Result on {split} split at train step {train_step}: {format_dict(result)}")

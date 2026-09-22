@@ -235,7 +235,7 @@ class EMIT_TS(TimeSeriesModel):
         original_triplet_emb = time_emb + value_emb + vari_emb
         
         # Apply component-level masking if in pretraining mode
-        if self.pretrain and self.training and event_mask is not None:
+        if self.pretrain and event_mask is not None:
             time_emb, value_emb, vari_emb = self.apply_component_masking(
                 time_emb, value_emb, vari_emb, event_mask
             )
