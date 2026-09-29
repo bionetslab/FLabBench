@@ -243,15 +243,11 @@ def _entropy(counts):
     return float(-np.sum(p * np.log(p)))
 
 
-def analyse(A, X, y, name, seed=42, n_bins=10, cv=True):
-    """Return dict with nmi, related, detectability (train-set Spearman ρ).
-
-    NMI = MI(A; Y) / sqrt(H(A) · H(Y)) — symmetric, bounded in [0, 1].
+def compute_nmi(A, y, discrete_features, seed=42, n_bins=10):
+    """NMI = MI(A; Y) / sqrt(H(A) · H(Y)) — symmetric, bounded in [0, 1].
     H(A) is estimated by binning A into n_bins equal-width histogram bins
     (or using unique values directly when A is already discrete).
     """
-    # discrete_features = name == "self_interactions"
-    discrete_features = name == "gender"
     mi = float(mutual_info_classif(A.reshape(-1, 1), y, discrete_features=discrete_features, random_state=seed)[0])
 
     _, y_counts = np.unique(y, return_counts=True)
@@ -264,8 +260,25 @@ def analyse(A, X, y, name, seed=42, n_bins=10, cv=True):
     h_a = _entropy(a_counts)
 
     denom = np.sqrt(h_a * h_y)
-    nmi = float(np.clip(mi / denom, 0.0, 1.0)) if denom > 0 else 0.0
+    return float(np.clip(mi / denom, 0.0, 1.0)) if denom > 0 else 0.0
+
+
+def analyse(A, X, y, name, seed=42, n_bins=10, cv=True, n_perm=0):
+    """Return dict with nmi, related, detectability (Spearman ρ), and with n_perm > 0
+    the permutation p-value and z-score of the NMI.
+    """
+    # discrete_features = name == "self_interactions"
+    discrete_features = name == "gender"
+    nmi = compute_nmi(A, y, discrete_features, seed, n_bins)
     print(f"    NMI(A;Y) = {nmi:.4f}  (related? {'Yes' if nmi > 0 else 'No'})", file=sys.stderr)
+
+    # shuffled labels keep cohort size and class balance but break the A-Y link, so their NMI is the chance level
+    nmi_p, nmi_z = np.nan, np.nan
+    if n_perm > 0:
+        rng = np.random.default_rng(seed)
+        null = np.array([compute_nmi(A, rng.permutation(y), discrete_features, seed, n_bins) for _ in range(n_perm)])
+        nmi_p = float((1 + np.sum(null >= nmi)) / (1 + n_perm))
+        nmi_z = float((nmi - null.mean()) / null.std()) if null.std() > 0 else np.nan
 
     if X.shape[0] < 10:
         detectability = 0.0
@@ -275,7 +288,7 @@ def analyse(A, X, y, name, seed=42, n_bins=10, cv=True):
         pred = cross_val_predict(reg, X, A, cv=5) if cv else reg.fit(X, A).predict(X)
         detectability = float(spearmanr(A, pred)[0])
 
-    return {"nmi": nmi, "related": nmi > 0, "detectability": detectability}
+    return {"nmi": nmi, "related": nmi > 0, "detectability": detectability, "nmi_p": nmi_p, "nmi_z": nmi_z}
 
 
 # ATTRIBUTES = {
@@ -315,10 +328,11 @@ def write_mqc(attribute, results, out_dir):
             "# headers:\n"
             "#     'NMI(A;Y)':                    {format: '{:.4f}'}\n"
             "#     'Detectability (Spearman ρ)':   {format: '{:.4f}'}\n"
-            "Split\tNMI(A;Y)\tRelated?\tDetectability (Spearman ρ)\n"
+            "Split\tNMI(A;Y)\tRelated?\tDetectability (Spearman ρ)\tNMI p-value\tNMI z-score\n"
         )
         for split, r in results:
-            fh.write(f"{split}\t{r['nmi']:.4f}\t{'Yes' if r['related'] else 'No'}\t{r['detectability']:.4f}\n")
+            fh.write(f"{split}\t{r['nmi']:.4f}\t{'Yes' if r['related'] else 'No'}\t{r['detectability']:.4f}"
+                     f"\t{r['nmi_p']:.4f}\t{r['nmi_z']:.4f}\n")
 
 
 # def main():
@@ -416,6 +430,7 @@ def main():
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--pool_splits", action="store_true", help="analyse train+val+test together as one split 'all'")
     ap.add_argument("--no_cv", action="store_true", help="in-sample detectability (fit and predict on the same admissions)")
+    ap.add_argument("--n_perm", type=int, default=0, help="label permutations for the NMI p-value and z-score, 0 = skip")
     args = ap.parse_args()
 
     print(f"=== {args.attribute} ===", file=sys.stderr)
@@ -448,9 +463,9 @@ def main():
         A, y_f = df["A"].to_numpy(dtype=np.float32), df["label"].to_numpy()
 
         print(f"  {X.shape[0]} {split} admissions retained", file=sys.stderr)
-        r = analyse(A, X, y_f, args.attribute, seed=args.seed, cv=not args.no_cv)
+        r = analyse(A, X, y_f, args.attribute, seed=args.seed, cv=not args.no_cv, n_perm=args.n_perm)
         results.append((split, r))
-        print(f"  [{split}] NMI={r['nmi']:.4f}  ρ={r['detectability']:.4f}", file=sys.stderr)
+        print(f"  [{split}] NMI={r['nmi']:.4f}  ρ={r['detectability']:.4f}  p={r['nmi_p']:.4f}  z={r['nmi_z']:.2f}", file=sys.stderr)
 
     if results:
         write_mqc(args.attribute, results, Path(PROJECT_ROOT) / args.out_dir / args.cohort)
