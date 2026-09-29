@@ -202,7 +202,7 @@ def build_X(emb_df, attrs):
 
 def load_features(path, top_features_path):
     """Return lab events (hadm_id, itemid) from features.csv.gz, restricted to the top-100 labs the model sees."""
-    feats = pd.read_csv(path, usecols=["hadm_id", "itemid"], dtype={"hadm_id": "int64", "itemid": "int64"})
+    feats = pd.read_csv(path, usecols=["hadm_id", "itemid", "minute"], dtype={"hadm_id": "int64", "itemid": "int64"})
     with open(top_features_path, "rb") as fh:
         top = set(int(x) for x in pickle.load(fh))
     return feats[feats["itemid"].isin(top)]
@@ -224,6 +224,19 @@ def n_events(feats):
 def n_labs(feats):
     """Number of distinct lab types (itemids) measured per admission."""
     return feats.groupby("hadm_id")["itemid"].nunique().astype(np.float32)
+
+
+def adm_missing(feats, n_items=100):
+    """Share of the top-100 labs never measured per admission."""
+    return (1 - feats.groupby("hadm_id")["itemid"].nunique() / n_items).astype(np.float32)
+
+
+def itembin_missing(feats, n_items=100, days=14, agg_int=24):
+    """Share of (lab, time bin) pairs not measured per admission, bins as in PreprocessorA."""
+    n_bins = int(np.ceil((days + 1) * 24 / agg_int))
+    bins = feats["minute"] // (60 * agg_int)
+    n_item_bins = feats.assign(int=bins).groupby("hadm_id")[["itemid", "int"]].apply(lambda g: len(g.drop_duplicates()))
+    return (1 - n_item_bins / (n_items * n_bins)).astype(np.float32)
 
 
 def age(cohort):
@@ -305,6 +318,8 @@ def analyse(A, X, y, name, seed=42, n_bins=10, cv=True, n_perm=0):
 ATTRIBUTES = {
     "n_events": lambda feats, cohort: n_events(feats),
     "n_labs": lambda feats, cohort: n_labs(feats),
+    "adm_missing": lambda feats, cohort: adm_missing(feats),
+    "itembin_missing": lambda feats, cohort: itembin_missing(feats),
     "age": lambda feats, cohort: age(cohort),
     "gender": lambda feats, cohort: gender(cohort),
 }
@@ -439,7 +454,7 @@ def main():
 
     # Load data ---------------------------------------------------------------
     feats = None
-    if args.attribute in ("n_events", "n_labs"):
+    if args.attribute in ("n_events", "n_labs", "adm_missing", "itembin_missing"):
         suffix = "_firstadm" if args.first_adm_only else ""
         feats = load_features(Path(PROJECT_ROOT) / "saved_data" / "features" / f"features_{args.days}d{suffix}" / args.cohort / "features.csv.gz",
                               Path(PROJECT_ROOT) / "data" / "top_features" / "mimic_top100_features.pkl")
