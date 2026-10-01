@@ -495,8 +495,9 @@ class PreprocessorD_sup(PreprocessorD):  # EMIT supervised (finetuning)
         self.normalise()
         
         if self.use_fixed_windows():
-            self.args.logger.write('Using FIXED-WINDOW EMIT preprocessing Time is in hours')
-            self.data['minute'] = self.data['minute'] / 60
+            max_time = (self.args.days_before_discharge + 1) * 24 * 60
+            self.args.logger.write('Using FIXED-WINDOW EMIT preprocessing Time is in minutes normalized to [-1, 1]')
+            self.data['minute'] = self.data['minute']/max_time*2-1
         else:   
             max_time = (self.args.days_before_discharge + 1) * 24 * 60
             self.args.logger.write('Using DYNAMIC-WINDOW EMIT preprocessing Time is in minutes normalized to [-1, 1]')

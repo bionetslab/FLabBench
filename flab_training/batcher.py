@@ -337,7 +337,8 @@ class BatcherD_unsup_fixed(Batcher):
         
         self.train_ts_inds = set(self.splits.get("train", []))
         self.val_ts_inds = set(self.splits.get("val", []))
-        
+        self.args.logger.write(f'EMIT fixed: times (hours) scaled to [-1, 1] over {(self.args.days_before_discharge + 1) * 24} hours')
+
         self.window_indices = {i: 0 for i in range(len(self.timestamps))}
 
     def get_batch(self, ind=None):
@@ -424,7 +425,9 @@ class BatcherD_unsup_fixed(Batcher):
         varis = [x + [0]*l for x, l in zip(input_varis, pad_lens)]
         event_masks = [list(x) + [False]*l for x, l in zip(input_event_masks, pad_lens)]
         values = torch.FloatTensor(values)
-        times = torch.FloatTensor(times)  # Keep in hours (NO normalization)
+        max_hour = (self.args.days_before_discharge + 1) * 24
+        times = [[t / max_hour * 2 - 1 for t in x] for x in times]
+        times = torch.FloatTensor(times)  # hours scaled to [-1, 1]
         varis = torch.IntTensor(varis)
         event_masks = torch.BoolTensor(event_masks)
         obs_mask = [[1]*l1 + [0]*l2 for l1, l2 in zip(num_obs, pad_lens)]
@@ -432,7 +435,7 @@ class BatcherD_unsup_fixed(Batcher):
         
         return {
             'values': values,
-            'times': times,  # In hours, not normalized
+            'times': times,  # hours scaled to [-1, 1]
             'varis': varis,
             'obs_mask': obs_mask,
             'event_mask': event_masks,
