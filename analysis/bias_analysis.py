@@ -80,7 +80,8 @@ EMB_LOADERS = {"strats": load_strats_embs, "bert": load_bert_embs}
 CATEGORICAL = ["gender", "insurance_group", "race_group", "language_group", "marital_status_group",
                "admission_type", "admission_type_raw", "admission_location", "discharge_location",
                "anchor_year_group", "era",
-               "has_medication", "death_in_window", "icu_any", "truncated_at_context", "n_death_events"]
+               "has_medication", "death_in_window", "icu_any", "truncated_at_context", "n_death_events",
+               "truncated_at_max_obs", "mortality"]
 
 
 def load_attr_csv(path, attribute):
@@ -127,8 +128,9 @@ def compute_nmi(A, y, discrete_features, seed=42, n_bins=10):
 
 def detect_categorical(A, X, seed, cv):
     """2·macro-AUC − 1 of a logistic regression predicting categorical A from X."""
-    if np.unique(A).size < 2:
-        return 0.0
+    vals, counts = np.unique(A, return_counts=True)
+    if vals.size < 2 or np.sort(counts)[-2] < 5:  # each CV training fold needs at least two classes
+        return np.nan
     clf = LogisticRegression(max_iter=1000, random_state=seed)
     a, classes = A.astype(int), np.unique(A).astype(int)
     proba = cross_val_predict(clf, X, a, cv=5, method="predict_proba") if cv else clf.fit(X, a).predict_proba(X)
@@ -183,13 +185,13 @@ def analyse(A, X, y, name, seed=42, n_bins=10, cv=True, n_perm=0, categorical=Fa
 
 ATTRIBUTES = {
     "n_events":             lambda cc: cc.n_events(),
-    "n_itemids_measured":   lambda cc: cc.n_itemids_measured(),
+    # "n_itemids_measured":   lambda cc: cc.n_itemids_measured(),  # same information as adm_itemid_missing
     "adm_itemid_missing":   lambda cc: cc.adm_itemid_missing(),
     "itembin_missing":      lambda cc: cc.itembin_missing(),
     "truncated_at_max_obs": lambda cc: cc.truncated_at_max_obs(),
     "age":                  lambda cc: cc.age(),
     "gender":               lambda cc: cc.gender(),
-    "mortality":            lambda cc: cc.mortality(),
+    # "mortality":            lambda cc: cc.mortality(),  # death any time, mostly a consequence of the label
 }
 
 
@@ -224,6 +226,7 @@ def append_rows(cohort, attribute, results, out_file):
                     f"\t{r['nmi_p']:.4f}\t{r['nmi_z']:.4f}\n" for split, r in results)
     with open(out_file, "a") as fh:
         fcntl.lockf(fh, fcntl.LOCK_EX)
+        fh.seek(0, 2)  # other runs may have written while we waited for the lock
         if fh.tell() == 0:
             fh.write("cohort\tattribute\tSplit\tNMI(A;Y)\tRelated?\tDetectability (Spearman ρ)\tNMI p-value\tNMI z-score\n")
         fh.write(lines)
